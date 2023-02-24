@@ -5,6 +5,7 @@
 #package ape is needed for representing sample trees.
 if(!("ape" %in% installed.packages())){install.packages("ape")}
 library(ape)
+options(scipen = 999)
 
 #generate derived allele frequences for n.loci loci under neutral sfs.
 #n can either be size of sample of chromosomes (for sample SFS)
@@ -762,6 +763,8 @@ mom.smoothtime <- function(lins, time){
 	if(length(lins.g0) == 1 & lins.g0[1] > 1){
 		lins.g0[2] <- 1
 		time.g0 <- time[1:2]
+		print(i)
+		print(j)
 	}	
 	coal.times <- sapply(lins.g0, mom.scaledtime, n0 = n0)
 	coal.smooth <- smooth.steps(time.g0, coal.times)
@@ -863,7 +866,7 @@ estN_waittimes <- function(ctimevec, ell){
 #Given a matrix of the form produced by estN_waittimes() and a target time,
 #pulls out the Nestimate and estimated variance of N for the target time.
 getN_estNmat <- function(estNmat, targ.time, est.only = FALSE){
-	ind <- nrow(estNmat)
+  ind <- nrow(estNmat)
 	if(estNmat[ind, 1] > targ.time){
 		ind <- which(estNmat[,1] == min(estNmat[estNmat[,1] > targ.time,1]))
 	}
@@ -898,7 +901,7 @@ ts_var_quotient <- function(mu_n, var_n, mu_d, var_d, cov_nd){
 #This version assumes that the alt allele is derived and assigns alt
 #frequency to 0 before place proportion on the branch on which the mutation
 #must have occurred. 
-p_ests_wait <- function(ctime.list, time.eval, ell.ref = 5, ell.alt = 5, place = 0.5, ord2adj = FALSE){
+p_ests_wait <- function(ctime.list, time.eval, ell.ref = 5, ell.alt = 5, place = 0.5, ord2adj = FALSE, taylor = FALSE){
 	Ns_ref <- estN_waittimes(ctime.list[[2]], ell.ref)
 	Ns_alt <- estN_waittimes(ctime.list[[3]], ell.alt)
 	#tree join time is the time in full tree that doesn't appear in either subtree.
@@ -915,11 +918,20 @@ p_ests_wait <- function(ctime.list, time.eval, ell.ref = 5, ell.alt = 5, place =
 	for(i in 1:length(time.eval)){
 		Ns.r.t <- getN_estNmat(Ns_ref, time.eval[i])
 		Ns.a.t <- getN_estNmat(Ns_alt, time.eval[i])
-		p.ests[i] <- Ns.a.t[1]/(Ns.a.t[1] + Ns.r.t[1])
+		
+		if(taylor == FALSE){
+      p.ests[i] <- Ns.a.t[1]/(Ns.a.t[1] + Ns.r.t[1])
+      var.ests[i] <- ts_var_quotient(Ns.a.t[1], Ns.a.t[2], Ns.a.t[1] + Ns.r.t[1], Ns.a.t[2] + Ns.r.t[2], Ns.a.t[2])
+    }
+		
 		if(ord2adj == TRUE){
 			p.ests[i] <- p.ests[i] + Ns.a.t[2]/(Ns.a.t[1] + Ns.r.t[1])^2 - Ns.a.t[1]*(Ns.a.t[2] + Ns.r.t[2])/(Ns.a.t[1] + Ns.r.t[1])^3
 		}
-		var.ests[i] <- ts_var_quotient(Ns.a.t[1], Ns.a.t[2], Ns.a.t[1] + Ns.r.t[1], Ns.a.t[2] + Ns.r.t[2], Ns.a.t[2])
+		
+	  if(taylor == TRUE){
+	    p.ests[i] <- Ns.a.t[1]/(Ns.a.t[1] + Ns.r.t[1]) - (Ns.a.t[1]*Ns.r.t[1]^2 - Ns.r.t[1]*Ns.a.t[1]^2)/(Ns.a.t[1] + Ns.r.t)^3
+	    var.ests[i] <- (Ns.a.t[1]*Ns.r.t[2] - Ns.r.t[1]*Ns.a.t[2])/(Ns.a.t[1] + Ns.r.t)^3
+	  }
 	}
 	cbind(p.ests, var.ests)
 }
@@ -1304,6 +1316,7 @@ est_af_traj_neut <- function(lins){
 
 #Takes a matrix of lineage numbers per time and returns
 #the binomial sampling variance of the neutral MLE of the allele frequency.
+#Equation 5 in the paper
 est_af_var_neut_bin <- function(lins){
 	j <- lins[,2]
 	r <- rowSums(lins)	
@@ -1344,10 +1357,100 @@ warp_a_tree <- function(tree, theta.region, force.ultra = TRUE, tol = 1e-10){
 	tree.warped
 }
 
+# Divide the lengths of a newick tree by a factor of "divisor.
+# For use with tsdate, where the output is in generations.
+divide_newick = function(tree,divisor) { # tree is a newick string
+  output = ""
+  number = ""
+  tree = strsplit(tree,"")[[1]]
+  
+  for (i in 1:length(tree)) {
+    new = tree[i]
+    if (new == "(" | new == ";") {
+      output = paste(output, new, sep = "")
+    } else if (new == ":" & tree[i-1] != ")") {
+      output = paste(output, as.numeric(number), ":", sep = "") # node label
+      number = ""
+    } else if (new == ":") {
+      output = paste(output, ":", sep = "")
+    } else if (new == ")") {
+      output = paste(output,as.numeric(number)/divisor, ")", sep = "") # length
+      number = ""
+    } else if (new == ",") {
+      output = paste(output,as.numeric(number)/divisor, ",", sep = "") # length
+      number = ""
+    } else if (new == ".") {
+      number = paste(number, ".", sep = "")
+    } else if (is.na(as.numeric(new)) == FALSE) {
+      number = paste(number, new, sep = "")
+    }
+  }
+  return(output)
+}
 
+#i estimator
+#Takes in a vector of coalescence times (coal.times) and a vector of times at which the skyline estimator
+#of population size should be calculated (times)
+#Returns a vector of skyline-estimated population sizes.
+#If the times are in generations, the skyline estimates will be numbers of chromosomes. 
+#If the times are in coalescent units, the skyline estimates will be relative to Ne.
+#The parameter ell is the number of coalescent events to wait for in a generalized skyline framework
 
+skyline.pop <- function(ctimevec, times, ell = 1){
+  skyline.mat <- estN_waittimes(ctimevec, ell)
+  traj <- numeric(length(times))
+  for(i in 1:length(times)){
+    traj[i] <- getN_estNmat(skyline.mat, times[i], est.only = TRUE)
+  }
+  traj
+}
 
+#This one takes in a list of coalescence times, where each entry in the list is another list.
+#The first level of indexing is loci. At the second level, there are three vectors: the first is
+#a vector of all coalescence times for that locus; next all coalescence times for the branches that
+#lead to the reference allele; next coalescence times for the branches that lead to the derived allele.
+#It also takes in a vector of times at which to compute the trajectory, an argument indicating whether
+#we should look at all times, reference times, or alt times, and the ell parameter from the generalized
+#skyline (number of coalescent events to wait for).
+#Returns a matrix of skyline trajectories for each locus. If the coalescent times are in generations, then
+#the estimates will be in units of #s of chromosomes, if in coal units, they will be in units of Ne.
 
+# get.skyline.mat <- function(ctime.list, times, subtree = 1, ell = 1){
+#   mat <- skyline.pop(ctime.list[[subtree]], times, ell)
+#   mat
+# }
+
+get.skyline.mat <- function(ctime.list, time.eval, ell.ref = 5, ell.alt = 5, place = 0.5, ord2adj = FALSE){
+  Ns_ref <- estN_waittimes(ctime.list[[2]], ell.ref)
+  Ns_alt <- estN_waittimes(ctime.list[[3]], ell.alt)
+  #tree join time is the time in full tree that doesn't appear in either subtree.
+  tj <- tree_join_time(ctime.list[[1]], ctime.list[[2]][-length(ctime.list[[2]])], ctime.list[[3]][-length(ctime.list[[3]])], NULL)
+  lca <- Ns_alt[nrow(Ns_alt), 1]	
+  if(tj >= lca){
+    Ns_alt <- rbind(Ns_alt, c(lca + (tj - lca)*place, 0, 0))
+  }
+  if(tj < lca){
+    Ns_alt <- rbind(Ns_alt, c(lca + 0.001, 0, 0))
+  }
+  
+  N.r <- matrix(nrow = length(time.eval), ncol = 2)
+  N.a <- matrix(nrow = length(time.eval), ncol = 2)
+  
+  subtree_estN_var_ls <- list()
+  subtree_ls <- list()
+  
+  for(i in 1:length(time.eval)){
+    N.r[i, ] <- getN_estNmat(Ns_ref, time.eval[i])[1]
+    N.a[i, ] <- getN_estNmat(Ns_alt, time.eval[i])[1]
+    # if(ord2adj == TRUE){
+    #   p.ests[i] <- p.ests[i] + Ns.a.t[2]/(Ns.a.t[1] + Ns.r.t[1])^2 - Ns.a.t[1]*(Ns.a.t[2] + Ns.r.t[2])/(Ns.a.t[1] + Ns.r.t[1])^3
+    # }
+  }
+  
+  subtree_ls[[1]] <- N.r
+  subtree_ls[[2]] <- N.a
+  return(subtree_ls)
+}
 
 #####Functions for hypothesis testing
 
@@ -1653,192 +1756,334 @@ tSDS_analogue_meansd <- function(ref_trees, alt_trees, means.daf, sds.daf){
 
 
 
-##############################################################
-##############################################################
-##############################################################
-##############################################################
-##############################################################
-##############################################################
-##############################################################
-##############################################################
-##############################################################
-##############################################################
-##############################################################
-##############################################################
-##############################################################
-#No-longer-used and unused functions.
-
-
-
-#Compute probability that 
-#we shift from m0 to mt lineages of type 1
-#we shift from n0 to nt lineages of type 2
-#AND
-#the frequency of type 1 changes from p0 to pt, all in t generations.
-#assumes fixed haploid population size N and constant selection coefficient
-#s (forward in time; this computes probability of a trajectory backward, and so
-#the negative of the forward-in-time s is used) on alleles of type 1. 
-#form, frac.swit, and func.user are as in time.scaling().
-logposterior.pt <- function(m0, mt, n0, nt, p0, pt, N, t, s, form = "linear", frac.swit = 0.5, func.user = NULL){
-	log_g_m <- p.ancs(m0, mt, N*p0, N*pt, t, form, frac.swit, func.user, logp = TRUE)
-	log_g_n <- p.ancs(n0, nt, N*(1-p0), N*(1-pt), t, form, frac.swit, func.user, logp = TRUE)
-	mu <- p0 - s*p0*(1-p0)*t
-	sig2 <- p0*(1-p0)*t/N
-	log_p_shift <- dnorm(pt, mu, sqrt(sig2), log = TRUE)
-	log_g_m + log_g_n + log_p_shift
+####################### functions that optimize the pheno_sim_1iiter.R script #######################################
+#Run through list and check for sites where 2+ variants had same coordinates as
+#selected site. At those places, check which tree(s) are monophyletic for derived tips.
+#if more than one, select randomly from among them.
+check_samecor_sel_site <- function(tool_name, tree_ls, sampling = FALSE){
+    for(i in 1:(new_argv$loci_end - new_argv$loci_start + 1)){
+        if(is.null(names(tree_ls[[i]]))){
+            cand.trees <- tree_ls[[i]]
+            is.mono <- numeric(0)
+            for(j in 1:length(cand.trees)){
+                if(sampling == FALSE){
+                    der_tips <- which(cand.trees[[j]]$tip.label %in% as.character((n_chroms - n_ders[i  + new_argv$loci_start - 1] + 1):n_chroms))
+                }else{
+                    if(tool_name == "ms"){
+                        der_tips <- as.character(sample_indices_ls[[i]][sample_indices_ls[[i]] > (n_chroms - n_ders[new_argv$loci_start + i - 1])])
+                    }else{
+                        der_tips <- as.character(which(sample_indices_ls[[i]] > (n_chroms - n_ders[new_argv$loci_start + i - 1])))
+                    }
+                }
+                is.mono[j] <- is.monophyletic(cand.trees[[j]], der_tips)
+            }
+            if(mean(is.mono) > 0){
+                ind.to.take <-  sample(which(is.mono == 1), 1)
+            }
+            if(mean(is.mono) == 0){ #if none are monophyletic, choose at random
+                ind.to.take <- sample(1:length(cand.trees), 1)
+            }
+            tree_ls[[i]] <- cand.trees[[ind.to.take]]
+        }
+    }
 }
 
-#density of the Laplace distribution.
-#code from the function of the same name in package rmutil.
-#just using this directly so that we don't have to load in the package.
-dlaplace <- function (y, m = 0, s = 1, log = FALSE) 
-{
-    if (any(s <= 0)) 
-        stop("s must be positive")
-    tmp <- -abs(y - m)/s - log(2 * s)
-    if (!log) 
-        tmp <- exp(tmp)
-    tmp
-}
-
-#like logposterior.pt(), but puts a Laplace distribution on s, centered at 0
-#and with a user-supplied dispersion.
-logposterior.pt.s <- function(m0, mt, n0, nt, p0, pt, N, t, s, s.disp = 0.01/sqrt(2), form = "linear", frac.swit = 0.5, func.user = NULL){
-	log_p_s <- dlaplace(s, 0, s.disp, log = TRUE)	
-	log_g_m <- p.ancs(m0, mt, N*p0, N*pt, t, form, frac.swit, func.user, logp = TRUE)
-	log_g_n <- p.ancs(n0, nt, N*(1-p0), N*(1-pt), t, form, frac.swit, func.user, logp = TRUE)
-	mu <- p0 - s*p0*(1-p0)*t
-	sig2 <- p0*(1-p0)*t/N
-	log_p_shift <- dnorm(pt, mu, sqrt(sig2), log = TRUE)
-	log_p_s + log_g_m + log_g_n + log_p_shift
-}
-
-
-#Find the value of pt that maximizes the "posterior" computed in logposterior.pt().
-max.posterior.pt <- function(m0, mt, n0, nt, p0, N, t, s, form = "linear", frac.swit = 0.5, func.user = NULL){
-	post <- function(pt, m0, mt, n0, nt, p0, N, t, s, form = "linear", frac.swit = 0.5, func.user = NULL){
-		-logposterior.pt(m0, mt, n0, nt, p0, pt, N, t, s, form, frac.swit, func.user)
-	}
-	optim(p0, post, method = "Brent", lower = 0, upper = 1, m0 = m0, mt = mt, n0 = n0,
-		nt = nt, p0 = p0, N = N, t = t, s = s, form = form, frac.swit = frac.swit,
-		func.user = func.user)$par
+aw_check_samecor_sel_site <- function(aw_tree_ls, sampling = FALSE){
+    for(i in 1:(new_argv$loci_end - new_argv$loci_start + 1)){
+        for(sample in 1:(aw_sample+1)){
+            if(is.null(names(aw_tree_ls[[i]][[sample]]))){
+                cand.trees <- aw_tree_ls[[i]][[sample]]
+                is.mono <- numeric(0)
+                for(j in 1:length(cand.trees)){
+                    if(sampling == FALSE){
+                        der_tips <- which(cand.trees[[j]]$tip.label %in% as.character((n_chroms - n_ders[i  + new_argv$loci_start - 1] + 1):n_chroms))
+                    }else{
+                        der_tips <- as.character(which(sample_indices_ls[[i]] > (n_chroms - n_ders[i  + new_argv$loci_start - 1])))
+                    }
+                    is.mono[j] <- is.monophyletic(cand.trees[[j]], der_tips)
+                }
+                if(mean(is.mono) > 0){
+                    ind.to.take <- sample(which(is.mono == 1), 1)
+                }
+                if(mean(is.mono) == 0){ #if none are monophyletic, choose at random
+                    ind.to.take <- sample(1:length(cand.trees), 1)
+                }
+                #ms_trees_list[[i]] <- cand.trees[[ind.to.take]]
+                aw_tree_ls[[i]][[sample]] <- aw_tree_ls[[i]][sample][[ind.to.take]]
+            }
+        }
+    }
 }
 
 
+#split into ancestral and derived trees and retrieve coalescence times (ct).
+split_tree <- function(tool_name, tree_ls){
+    anc_trees <- list()
+    der_trees <- list()
+    
+    sample_anc_trees <- list()
+    sample_der_trees <- list()
+    
+    ct_all <- list()
+    ct_anc <- list()
+    ct_der <- list()
+
+    for(i in 1:(new_argv$loci_end - new_argv$loci_start + 1)){
+        if(is.na(new_argv$sample_seq_num)){
+            anc_tips <- which(tree_ls[[i]]$tip.label %in% as.character(1:(n_chroms - n_ders[i + new_argv$loci_start - 1])))
+            der_tips <- which(tree_ls[[i]]$tip.label %in% as.character((n_chroms - n_ders[i + new_argv$loci_start - 1] + 1):n_chroms))
+        }else if(!is.na(new_argv$sample_seq_num)){
+            if(tool_name == "ms"){
+                anc_tips <- as.character(sample_indices_ls[[i]][sample_indices_ls[[i]] <= (n_chroms - n_ders[i + new_argv$loci_start - 1])])
+                der_tips <- as.character(sample_indices_ls[[i]][sample_indices_ls[[i]] > (n_chroms - n_ders[i + new_argv$loci_start - 1])])
+            }else{
+                anc_tips <- as.character(which(sample_indices_ls[[i]] <= (n_chroms - n_ders[i + new_argv$loci_start - 1])))
+                der_tips <- as.character(which(sample_indices_ls[[i]] > (n_chroms - n_ders[i + new_argv$loci_start - 1])))
+            }
+        }
+    
+        anc_trees[[i]] <- drop.tip(tree_ls[[i]], der_tips)
+        der_trees[[i]] <- drop.tip(tree_ls[[i]], anc_tips)
+       
+        ct_all[[i]] <- coal.times(tree_ls[[i]])
+        ct_anc[[i]] <- coal.times(anc_trees[[i]])
+        ct_der[[i]] <- coal.times(der_trees[[i]])
+    }
+    
+    assign(paste("anc_trees_", tool_name, sep = ""), anc_trees, envir = globalenv())
+    assign(paste("der_trees_", tool_name, sep = ""), der_trees, envir = globalenv())
+            
+    assign(paste("ct_", tool_name, "_all", sep = ""), ct_all, envir = globalenv())
+    assign(paste("ct_", tool_name, "_anc", sep = ""), ct_anc, envir = globalenv())
+    assign(paste("ct_", tool_name, "_der", sep = ""), ct_der, envir = globalenv())
+        
+    print(paste("round", as.character(i), "of tree processing complete"))
+}
+
+aw_split_tree <- function(tool_name, argweaver_trees_list, sampling = FALSE){
+    anc_trees_argweaver <<- list()
+    der_trees_argweaver <<- list()
+    ct_argweaver_all <<- list()
+    ct_argweaver_anc <<- list()
+    ct_argweaver_der <<- list()
+    
+    for(i in 1:(new_argv$loci_end - new_argv$loci_start + 1)){
+        anc_trees_argweaver[[i]] <<- list()
+        der_trees_argweaver[[i]] <<- list()
+        ct_argweaver_all[[i]] <<- list()
+        ct_argweaver_anc[[i]] <<- list()
+        ct_argweaver_der[[i]] <<- list()
+        
+        for(sample in 1:(aw_sample+1)){
+            anc_trees_argweaver[[i]][[sample]] <<- list()
+            der_trees_argweaver[[i]][[sample]] <<- list()
+            ct_argweaver_all[[i]][[sample]] <<- list()
+            ct_argweaver_anc[[i]][[sample]] <<- list()
+            ct_argweaver_der[[i]][[sample]] <<- list()
+            
+            if(sampling == FALSE){
+                anc_tips_argweaver <<- which(argweaver_trees_list[[i]][[sample]]$tip.label %in% as.character(1:(n_chroms - n_ders[i  + new_argv$loci_start - 1])))
+                der_tips_argweaver <<- which(argweaver_trees_list[[i]][[sample]]$tip.label %in% as.character((n_chroms - n_ders[i  + new_argv$loci_start - 1] + 1):n_chroms))	
+            }else{
+                anc_tips_argweaver <<- as.character(which(sample_indices_ls[[i]] <= (n_chroms - n_ders[i  + new_argv$loci_start - 1])))
+                der_tips_argweaver <<- as.character(which(sample_indices_ls[[i]] > (n_chroms - n_ders[i  + new_argv$loci_start - 1])))
+            }
+            
+            anc_trees_argweaver[[i]][[sample]] <<- drop.tip(argweaver_trees_list[[i]][[sample]], der_tips_argweaver, collapse.singles = FALSE)
+            der_trees_argweaver[[i]][[sample]] <<- drop.tip(argweaver_trees_list[[i]][[sample]], anc_tips_argweaver, collapse.singles = FALSE)
+        	
+            ct_argweaver_all[[i]][[sample]] <<- coal.times(argweaver_trees_list[[i]][[sample]])
+            ct_argweaver_anc[[i]][[sample]] <<- coal.times(anc_trees_argweaver[[i]][[sample]])
+            ct_argweaver_der[[i]][[sample]] <<- coal.times(der_trees_argweaver[[i]][[sample]])	
+        }
+       print(paste("round", as.character(i), "of tree processing complete")) 
+    }
+}
+
+# store coalescent times of the whole tree, anc tree and der tree into one list
+coal_time_ls <- function(tree_ls, anc_trees, der_trees, tool_name){
+    times.c <- list()
+    if(tool_name == "ms" | tool_name == "rent" | tool_name == "tsinfer"){
+        for(i in 1:length(tree_ls)){
+            times.c[[i]] <- trees_to_times(tree_ls[[i]], anc_trees[[i]], der_trees[[i]], time, sure.alt.is.derived = FALSE, units_in = 4)
+        }
+    }
+    else{
+        for(i in 1:length(tree_ls)){
+            times.c[[i]] <- trees_to_times(tree_ls[[i]], anc_trees[[i]], der_trees[[i]], time, sure.alt.is.derived = FALSE, units_in = 2)
+        }
+    }
+    assign(paste("times.c.", tool_name, sep = ""), times.c, envir = globalenv())
+}
 
 
-#draw a sample from the posterior distribution of pt using rejection sampling.
-#candidates drawn from a uniform--probably could be made more efficient.
-#possible to provide the pt that maximizes the posterior and the value
-#of the max at that point to save time.
-post.rej.samp <- function(m0, mt, n0, nt, p0, N, t, s, max.post = NULL, argmax.post = NULL, form = "linear", frac.swit = 0.5, func.user = NULL){
-	if(is.null(argmax.post)){
-		argmax.post <- max.posterior.pt(m0, mt, n0, nt, p0, N, t, s, form, frac.swit, func.user)
-	}
-	if(is.null(max.post)){
-		max.post <- exp(logposterior.pt(m0, mt, n0, nt, p0, argmax.post, N, t, s, form, frac.swit, func.user))
-	}
-	samp <- NULL
-	while(is.null(samp)){
-		cand <- runif(1, 0, 1)
-		cand.post <- exp(logposterior.pt(m0, mt, n0, nt, p0, cand, N, t, s, form, frac.swit, func.user))
-		comp <- runif(1,0,1)
-		if(cand.post/max.post >= comp){
-			samp <- cand
-		}
-	}
-	samp
+aw_coal_time_ls <- function(argweaver_trees_list, anc_trees_argweaver, der_trees_argweaver){
+    times.c.argweaver <<- list()
+    for(i in 1:length(argweaver_trees_list)){
+        times.c.argweaver[[i]] <<- list()
+        for(sample in 1:(aw_sample+1)){
+            times.c.argweaver[[i]][[sample]] <<- list()
+            times.c.argweaver[[i]][[sample]] <<- trees_to_times(argweaver_trees_list[[i]][[sample]], anc_trees_argweaver[[i]][[sample]],
+                                               der_trees_argweaver[[i]][[sample]], time, sure.alt.is.derived = FALSE, units_in = 2)
+        }
+    }
+}
+
+
+# store the number of lineages of ref allele (col1) and alt allel (col2) into a list of matrix
+lins_ls <- function(tree_ls, tool_name){
+    lins.list <- list()
+    times.c <- get(paste("times.c.", tool_name, sep = ""))
+    for(i in 1:length(tree_ls)){
+        lins.list[[i]] <- times_to_lins(times.c[[i]], time)
+    }
+    assign(paste("lins.list.", tool_name, sep = ""), lins.list, envir = globalenv())
+}
+
+aw_lins_ls <- function(argweaver_trees_list, times.c.argweaver){
+    lins.list.argweaver <<- list()
+    for(i in 1:length(argweaver_trees_list)){
+        lins.list.argweaver[[i]] <<- list()
+        for(sample in 1:(aw_sample+1)){
+            lins.list.argweaver[[i]][[sample]] <<- list()
+            lins.list.argweaver[[i]][[sample]] <<- times_to_lins(times.c.argweaver[[i]][[sample]], time)
+        }
+    }
+}
+
+
+#################### software input data format transformation #####################
+
+## change the 0-1 scale snp positions to real positions by multiplying with haplotype length and add 1 to repetitive positions
+recover_pos <- function(rent_input_file, len_hap){
+    snp_pos <- as.numeric(strsplit(readLines(rent_input_file)[1], " ")[[1]])
+    snp_pos <- as.numeric(as.character(snp_pos * len_hap))
+    stat_pos <- as.data.frame(table(snp_pos))
+    rep_pos <- as.numeric(as.character(stat_pos[stat_pos$Freq != 1, ]$snp_pos)) # find repetitive positions
+    
+    for(pos in rep_pos){
+      add_one_pos = which(snp_pos == pos) #find index of repetitive positions 
+      for(rep in add_one_pos[2:length(add_one_pos)]){
+        snp_pos[rep] <- snp_pos[rep] + which(add_one_pos == rep) - 1
+      }
+    }
+    return(snp_pos)
+}
+
+
+## sample from mssel output (actually transferred mssel ouput which can be fed to RENT+) and remove those sites which are not polymorphic
+sample_rent_input <- function(rent_in_fn, rent_sample_in, sample_seq_num, i){
+    rent_full <- readLines(rent_in_fn)
+    
+    anc_num <- 0
+    #to check if all sampled tips are ancestral tips or derived tips
+    while(anc_num == sample_seq_num | anc_num == 0){
+        sample_indices <- sort(sample(1:2000, sample_seq_num))
+        anc_num <- sum(as.character(sample_indices) %in% as.character(1:(n_chroms - n_der)))
+    }
+    
+    sample_indices_ls[[i]] <<- sample_indices
+    
+    rent_sample <- rent_full[sample_indices + 1]
+    #rent_sample_mat <- t(sapply(rent_sample, function(x) as.numeric(unlist(strsplit(x, '')))))
+    #rent_sample_list <- sapply(rent_sample, function(x) as.numeric(unlist(strsplit(x, ''))))
+    rent_sample_mat <- matrix(, nrow = sample_seq_num, ncol = nchar(rent_sample[1]))
+    for(samp in 1:sample_seq_num){
+        rent_sample_list <- as.numeric(unlist(strsplit(rent_sample[samp], "")))
+        rent_sample_mat[samp, ] <- rent_sample_list
+    }
+    
+    #rownames(rent_sample_mat) <- NULL
+    #save(rent_sample_mat, file = "test.RData")
+    not_poly <- c() # after sampling, some sites are not polymorphic and we need to remove them from the sampling sites
+    for(col in 1:ncol(rent_sample_mat)){
+        if(sum(rent_sample_mat[, col]) == sample_seq_num | sum(rent_sample_mat[, col]) == 0){
+            not_poly <- c(not_poly, col)
+        }
+    }
+    
+    rent_sample_mat <- rent_sample_mat[, -not_poly]
+    position <- strsplit(rent_full[1], " ")[[1]][-not_poly]
+    
+    sink(rent_sample_in)
+    cat(paste(as.character(position), collapse = " "))
+    cat("\n")
+    for(row in 1:nrow(rent_sample_mat)){
+        cat(paste(as.character(rent_sample_mat[row,]), collapse = ""))
+        cat("\n")
+    }
+    sink()
 }
 
 
 
-
-#Estimate allele frequency trajectory by maximizing posterior.
-#Entry i in ss is the selection coefficient (advantage of heterozygote)
-#between times[i] and times[i+1]. N is the fixed haploid pop size.
-est_af_traj_max.posterior <- function(lins, N, times = seq(0.005, 8.005, by = 0.01), p0=NULL, ss = rep(0,length(times-1)), form = "linear", frac.swit = 0.5, func.user = NULL){
-	traj <- rep(-1, length(lins[,1]))
-	traj[lins[,1] == 0] <- 1
-	traj[lins[,2] == 0] <- 0
-	traj[1] <- lins[1,2]/(lins[1,2] + lins[1,1])
-	if(!is.null(p0)){traj[1] <- p0}
-	for(i in which(traj < 0)){
-		traj[i] <- max.posterior.pt(lins[i-1,2], lins[i,2], lins[i-1,1], lins[i,1], traj[i-1], N, N*(times[i] - times[i-1]), ss[i-1], form,frac.swit, func.user)
-	}
-	traj
+## read the haplotypes from the text file into a matrix
+hap_to_mat <- function(rent_input_file){
+    rent_in <- as.matrix(fread(rent_input_file, skip = 1, header = FALSE))
+    derived_info <- matrix(nrow = nchar(rent_in[1]), ncol = n_chromss)
+    for(line in 1:nrow(rent_in)){
+       derived_info[, line] <- as.integer(strsplit(rent_in[line], "")[[1]])
+    }
+    return(derived_info)
 }
 
-
-##Computes a trajectory by sampling from the posterior at each timepoint, going back
-#into the past.
-est_af_traj_samp.posterior <- function(lins, N, times = seq(0.005, 8.005, by = 0.01), p0=NULL, ss = rep(0,length(times-1)), form = "linear", frac.swit = 0.5, func.user = NULL){
-	traj <- rep(-1, length(lins[,1]))
-	traj[lins[,1] == 0] <- 1
-	traj[lins[,2] == 0] <- 0
-	traj[1] <- lins[1,2]/(lins[1,2] + lins[1,1])
-	if(!is.null(p0)){traj[1] <- p0}
-	for(i in which(traj < 0)){
-		traj[i] <- post.rej.samp(lins[i-1,2], lins[i,2], lins[i-1,1], lins[i,1], traj[i-1], N, N*(times[i] - times[i-1]), ss[i-1], form=form, frac.swit=frac.swit, func.user=func.user)
-	}
-	traj
+## transfer rent+ input to RELATE recognized format
+relate_input <- function(derived_info, snp_pos){
+    chrom_num <- rep(1, length(snp_pos))
+    snp_id <- rep(".", length(snp_pos))
+    ances_alle <- rep("A", length(snp_pos))
+    alter_alle <- rep("C", length(snp_pos))
+    
+    # randomly group a pair of columns to make them the haplotypes carried by an individual
+    #shuffled_derived_info <- derived_info[, sample(ncol(derived_info))]
+    
+    # .haps input file
+    haps <- cbind(chrom_num, snp_id, snp_pos, ances_alle, alter_alle, derived_info)
+    
+    # .sample input file
+    id1 <- c()
+    for(samp_id in 1:(n_chromss/2)){
+      id1 <- append(id1, paste(c("Sample", samp_id), collapse = ""))
+    }
+    
+    id2 <- id1
+    missing <- rep(0, n_chromss/2)
+    sample <- cbind(id1, id2, missing)
+    sample <- rbind(rep(0, 3), sample)
+    
+    # .map input file
+    Position.bp. <- snp_pos
+    Rate.cM.Mb <- 1/(0.01/(2.5*10^(-8)))/10^(-6) #E(N) = r*d = 0.01, unit of d is bp/cM
+    Map.cM <- snp_pos * 0.25*10^(-5) # position(bp) * cM/bp 
+    map <- cbind(Position.bp., rep(Rate.cM.Mb, length(Position.bp.)), Map.cM)
+    
+    fwrite(as.data.frame(haps), paste(new_temp, "/data.haps", sep = ""), col.names = FALSE, sep = " ")
+    fwrite(as.data.frame(sample), paste(new_temp, "/data.sample", sep = ""), sep = " ")
+    fwrite(as.data.frame(map), paste(new_temp, "/data.map", sep = ""), sep = " ")
+    
+    #system(paste("mv", paste("data", as.character(iter), ".*", sep = ""), new_temp))
 }
 
+## transfer rent+ input to tsinfer recognized format and extract the tree
+tsinfer_run <- function(derived_info, snp_pos, sel_site){
+    data = cbind(matrix(snp_pos, nrow = length(snp_pos), ncol = 1), derived_info)
+    len_hap = len_hap + 1000 
+    
+    ### Newick Trees ###############################################################
 
+    #print(paste("Duplicate length:", length(snp_pos)-length(unique(snp_pos))))
+    #print(paste("# not sorted:", sum(snp_pos != sort(snp_pos))))
+    
+    sel_row = which(data[,1] == sel_site)
+    # run tfinfer to get newick trees
 
-
-
-#Produce 1-generation transition matrix for Wright-Fisher model.
-#N is haploid population size (so use 2*N for diploids)
-#s is selection coefficient
-wf_transition_1gen <- function(N, s = 0){
-	ps <- rep((0:N)/N, N+1)
-	qs <- (ps*(1+s))/(1 + ps*s)
-	ns <- rep(0:N, each = N+1)
-	matrix(dbinom(ns, N, qs), nrow = N+1, ncol = N+1)
+    nwtree = tsfunc(data, sel_row, N, u)#/len_hap)#*2*N)
+    nwtree = divide_newick(nwtree,4*N)
+    
+    len_hap = len_hap - 1000
+    
+    return(nwtree)
 }
-
-#Given an eigendecomposition of a 1-generation transition matrix
-#(produced by calling eigen()), produces the t-generation
-#transition matrix
-wf_transition_tgen <- function(eig, t, P.inv = NULL){
-	P <- eig$vectors
-	D <- diag(eig$values^t)
-	if(is.null(P.inv)){P.inv <- solve(P)}
-	trans <- P %*% D %*% P.inv
-	Re(trans)
-}
-
-
-#Compute the probability that a new mutation is lost before ever reaching/exceeding
-#a target frequency.
-p_quickloss <- function(N, s = 0, targ = 1/1000){
-	if(1/N >= targ){return(0)}
-	targ.n <- ceiling(N*targ)
-	ps <- rep((0:targ.n)/N, targ.n+1)
-	qs <- (ps*(1+s))/(1 + ps*s)
-	ns <- rep(0:targ.n, each = targ.n + 1)
-	t.1gen <- matrix(dbinom(ns, N, qs), nrow = targ.n+1, ncol = targ.n+1)
-	t.1gen[nrow(t.1gen),] <- c(rep(0, targ.n), 1)
-	t.1gen[,ncol(t.1gen)] <- 1 - rowSums(t.1gen[,1:targ.n])	
-	eig.ob <- eigen(t.1gen)
-	wf_transition_tgen(eig.ob, targ.n*10)[2,1]
-}
-
-
-
-p_samp_g0 <- function(N, t, n, s){
-	wf.1g <- wf_transition_1gen(N, s)
-	eig <- eigen(wf.1g)
-	wf.tg <- wf_transition_tgen(eig, t)
-	p_pop <- wf.tg[2,]
-	i <- 0:N
-	1 - sum(p_pop * (1 - i/N)^n)
-}
-
-
-
-
-
 
 
 
