@@ -1538,7 +1538,6 @@ weighted.lm.sel.grad <- function(eff_sizes, af.1, af.2){
 	lm(af.chgs ~ eff_sizes, weights = 1/(af.1*(1-af.1)))
 }
 
-
 #Runs a spearman's rho test relating allele frequency change to effect size.
 spearman.seltest <- function(eff_sizes, af.1, af.2){
 	af.chgs <- af.1 - af.2
