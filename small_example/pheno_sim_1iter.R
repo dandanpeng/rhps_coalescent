@@ -1,9 +1,6 @@
-
-
 #Doc Edge, 6/13/18
 #Goal: Simulate phenotypic scores (possibly under selection) that are additive functions
 # of genotypes at many loci. 
-
 
 #Plan: simulate n_loci allele frequency trajectories.
 #to do this, select an effect size from normal dist with mean 0 and sd
