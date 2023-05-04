@@ -907,12 +907,12 @@ ts_var_quotient <- function(mu_n, var_n, mu_d, var_d, cov_nd){
 #This version assumes that the alt allele is derived and assigns alt
 #frequency to 0 before place proportion on the branch on which the mutation
 #must have occurred. 
-p_ests_wait <- function(ctime.list, time.eval, ell.ref = 5, ell.alt = 5, place = 0.5, ord2adj = FALSE, taylor = FALSE){
+p_ests_wait <- function(ctime.list, time.eval, ell.ref = 5, ell.alt = 5, place = 0.5, ord2adj = FALSE){
 	Ns_ref <- estN_waittimes(ctime.list[[2]], ell.ref)
 	Ns_alt <- estN_waittimes(ctime.list[[3]], ell.alt)
 	#tree join time is the time in full tree that doesn't appear in either subtree.
 	tj <- tree_join_time(ctime.list[[1]], ctime.list[[2]][-length(ctime.list[[2]])], ctime.list[[3]][-length(ctime.list[[3]])], NULL)
-	lca <- Ns_alt[nrow(Ns_alt), 1]	
+	lca <- Ns_alt[nrow(Ns_alt), 1]	#the first coalescent timepoint
 	if(tj >= lca){
 		Ns_alt <- rbind(Ns_alt, c(lca + (tj - lca)*place, 0, 0))
 	}
@@ -924,20 +924,22 @@ p_ests_wait <- function(ctime.list, time.eval, ell.ref = 5, ell.alt = 5, place =
 	for(i in 1:length(time.eval)){
 		Ns.r.t <- getN_estNmat(Ns_ref, time.eval[i])
 		Ns.a.t <- getN_estNmat(Ns_alt, time.eval[i])
+		p.ests[i] <- Ns.a.t[1]/(Ns.a.t[1] + Ns.r.t[1])
 		
-		if(taylor == FALSE){
-      p.ests[i] <- Ns.a.t[1]/(Ns.a.t[1] + Ns.r.t[1])
-      var.ests[i] <- ts_var_quotient(Ns.a.t[1], Ns.a.t[2], Ns.a.t[1] + Ns.r.t[1], Ns.a.t[2] + Ns.r.t[2], Ns.a.t[2])
-    }
+# 		if(taylor == FALSE){
+#       p.ests[i] <- Ns.a.t[1]/(Ns.a.t[1] + Ns.r.t[1])
+#       var.ests[i] <- ts_var_quotient(Ns.a.t[1], Ns.a.t[2], Ns.a.t[1] + Ns.r.t[1], Ns.a.t[2] + Ns.r.t[2], Ns.a.t[2])
+#     }
 		
 		if(ord2adj == TRUE){
 			p.ests[i] <- p.ests[i] + Ns.a.t[2]/(Ns.a.t[1] + Ns.r.t[1])^2 - Ns.a.t[1]*(Ns.a.t[2] + Ns.r.t[2])/(Ns.a.t[1] + Ns.r.t[1])^3
 		}
+		ts_var_quotient(Ns.a.t[1], Ns.a.t[2], Ns.a.t[1] + Ns.r.t[1], Ns.a.t[2] + Ns.r.t[2], Ns.a.t[2])
 		
-	  if(taylor == TRUE){
-	    p.ests[i] <- Ns.a.t[1]/(Ns.a.t[1] + Ns.r.t[1]) - (Ns.a.t[1]*Ns.r.t[1]^2 - Ns.r.t[1]*Ns.a.t[1]^2)/(Ns.a.t[1] + Ns.r.t)^3
-	    var.ests[i] <- (Ns.a.t[1]*Ns.r.t[2] - Ns.r.t[1]*Ns.a.t[2])/(Ns.a.t[1] + Ns.r.t)^3
-	  }
+	  # if(taylor == TRUE){
+	  #   p.ests[i] <- Ns.a.t[1]/(Ns.a.t[1] + Ns.r.t[1]) - (Ns.a.t[1]*Ns.r.t[1]^2 - Ns.r.t[1]*Ns.a.t[1]^2)/(Ns.a.t[1] + Ns.r.t)^3
+	  #   var.ests[i] <- (Ns.a.t[1]*Ns.r.t[2] - Ns.r.t[1]*Ns.a.t[2])/(Ns.a.t[1] + Ns.r.t)^3
+	  # }
 	}
 	cbind(p.ests, var.ests)
 }
