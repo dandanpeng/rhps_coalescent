@@ -440,7 +440,7 @@ tree_join_time <- function(allt, anct, dert, mut.time = NULL){
 #overall tree so that the trees join just earlier in time than the alt tree coalesces.
 #place determines where the mutation is placed on the topmost branch, relative to its length
 #place = 0.5 (the default) puts it in the middle, lower numbers are closer to the present
-add_mutation <- function(allt, reft, altt, tj, times, sure.alt.is.derived = FALSE, place = 0.5){
+add_mutation <- function(tree.all, tree.ref, tree.alt, allt, reft, altt, tj, times, sure.alt.is.derived = FALSE, place = 0.5){
 	#If both trees have at least two leaves (and  at least one coalescence time)	
 	if(length(reft) > 0 & length(altt) > 0){
 		#If we are sure that the alternative tree is derived but the
@@ -448,13 +448,21 @@ add_mutation <- function(allt, reft, altt, tj, times, sure.alt.is.derived = FALS
 		#coalescence in the alternative tree, then change the
 		#tree-join time to be just earlier than the last coalescence
 		#in the alternative tree.		
-		if(sure.alt.is.derived & max(altt) > tj){
-			tj <- max(altt) + 0.001
-		}
-		if(max(altt) > tj){ #if the alt tree hasn't coalesced when the trees join
-			reft <- c(reft, (max(reft)*(1-place) + tj*place)) 
-			altt <- c(altt, max(times) + 1)
-		}
+	  if(max(altt) > tj){
+	    if(sure.alt.is.derived & !is.monophyletic(tree.all, tree.alt$tip.labels) & is.monophyletic(tree.all, tree.ref$tip.labels)){
+	      reft <- c(reft, (max(reft)*(1-place) + tj*place)) 
+	      altt <- c(altt, max(times) + 1)
+	    }else{
+	      tj <- max(altt) + 0.001
+	    }
+	  }
+		# if(sure.alt.is.derived & max(altt) > tj){
+		# 	tj <- max(altt) + 0.001
+		# }
+		# if(max(altt) > tj){ #if the alt tree hasn't coalesced when the trees join
+		# 	reft <- c(reft, (max(reft)*(1-place) + tj*place)) 
+		# 	altt <- c(altt, max(times) + 1)
+		# }
 		if(max(altt) <= tj){
 			reft <- c(reft, max(times) + 1)
 			altt <- c(altt, (max(altt)*(1-place) + tj*place))
@@ -1280,7 +1288,7 @@ trees_to_times <- function(tree.all, tree.ref, tree.alt, times, sure.alt.is.deri
 		altt <- altt*units_in/units_out
 	}
 	tj <- tree_join_time(allt, reft, altt, mut.time)
-	add_mutation(allt, reft, altt, tj, times, sure.alt.is.derived, place)
+	add_mutation(tree.all, tree.ref, tree.alt, allt, reft, altt, tj, times, sure.alt.is.derived, place)
 }
 
 
