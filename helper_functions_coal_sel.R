@@ -851,15 +851,12 @@ estN_waittimes <- function(ctimevec, ell){
 	N.vars[1] <- (N.ests[1]^2)*var.mult(n-l, l)
 	if(length(ctimes) > 1){
 		for(i in 2:length(ctimes)){
-		  if(ctimes[i] != ctimes[i-1]){
 		    wt <- ctimes[i] - ctimes[i-1]
 		    n <- length(ctimevec) + 1 - ell*(i-1) # number of lineages
 		    l <- inds[i] - inds[i-1] # number of coalescences between ctime[i] and ctime[i-1]
-		  }else{
 		    wt = ctimes[i] - max(ctimes[ctimes < ctimes[i]])
 		    n <- length(ctimevec) + 1 - ell*i
 		    l <- inds[i] - inds[i-1]
-		  }
 			N.ests[i] <- wt/(2*(1/(n-l) - 1/n))
 			N.vars[i] <- (N.ests[i]^2)*var.mult(n-l, l)
 		}
