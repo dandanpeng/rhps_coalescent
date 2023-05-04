@@ -833,7 +833,7 @@ est_af_var_mom.smoothtime_coaltimes <- function(lins, times = seq(0.005, 8.005, 
 #are left.
 estN_waittimes <- function(ctimevec, ell){
 	ctimevec <- sort(ctimevec)
-	if(length(ctimevec) < ell){inds <- length(ctimevec)}
+	if(length(ctimevec) < ell){inds <- length(ctimevec)} 
 	if(length(ctimevec) == ell){inds <- ell}	
 	if(length(ctimevec) > ell){
 		inds <- seq(ell, ell*floor(length(ctimevec)/ell), by = ell)
@@ -851,9 +851,15 @@ estN_waittimes <- function(ctimevec, ell){
 	N.vars[1] <- (N.ests[1]^2)*var.mult(n-l, l)
 	if(length(ctimes) > 1){
 		for(i in 2:length(ctimes)){
-			wt <- ctimes[i] - ctimes[i-1]
-			n <- length(ctimevec) + 1 - ell*(i-1)
-			l <- inds[i] - inds[i-1]		
+		  if(ctimes[i] != ctimes[i-1]){
+		    wt <- ctimes[i] - ctimes[i-1]
+		    n <- length(ctimevec) + 1 - ell*(i-1) # number of lineages
+		    l <- inds[i] - inds[i-1] # number of coalescences between ctime[i] and ctime[i-1]
+		  }else{
+		    wt = ctimes[i] - max(ctimes[ctimes < ctimes[i]])
+		    n <- length(ctimevec) + 1 - ell*i
+		    l <- inds[i] - inds[i-1]
+		  }
 			N.ests[i] <- wt/(2*(1/(n-l) - 1/n))
 			N.vars[i] <- (N.ests[i]^2)*var.mult(n-l, l)
 		}
