@@ -220,6 +220,7 @@ write.trajfile <- function(filename, p0 = 0.1, s = 0.001, t = 0.1, N = 10000, de
 }
 
 
+
 #Somewhat redundant with write.trajfile()--should merge these
 #This function takes an allele frequency trajectory and writes it to a file,
 #whereas write.trajfile simulates the trajectory *and* writes to a file.
