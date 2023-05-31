@@ -849,6 +849,13 @@ estN_waittimes <- function(ctimevec, ell){
 			inds <- c(inds, length(ctimevec))
 		}
 	}
+	
+	count_ctime <- as.data.frame(table(ctimevec))
+	original_wt <- ctimevec[2:length(ctimevec)] - ctimevec[1:length(ctimevec)-1]
+	polytomy_n <- 
+	
+	
+	
 	ctimes <- ctimevec[inds]
 	N.ests <- numeric(length(ctimes))
 	N.vars <- N.ests
