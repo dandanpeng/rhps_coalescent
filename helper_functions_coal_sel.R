@@ -441,43 +441,47 @@ tree_join_time <- function(allt, anct, dert, mut.time = NULL){
 #overall tree so that the trees join just earlier in time than the alt tree coalesces.
 #place determines where the mutation is placed on the topmost branch, relative to its length
 #place = 0.5 (the default) puts it in the middle, lower numbers are closer to the present
-add_mutation <- function(allt, reft, altt, tj, times, sure.alt.is.derived = FALSE, place = 0.5){
-	#If both trees have at least two leaves (and  at least one coalescence time)	
-	if(length(reft) > 0 & length(altt) > 0){
-		#If we are sure that the alternative tree is derived but the
-		#tree-join time is more recent than the final
-		#coalescence in the alternative tree, then change the
-		#tree-join time to be just earlier than the last coalescence
-		#in the alternative tree.		
-		if(sure.alt.is.derived & max(altt) > tj){
-			tj <- max(altt) + 0.001
-		}
-		if(max(altt) > tj){ #if the alt tree hasn't coalesced when the trees join
-			reft <- c(reft, (max(reft)*(1-place) + tj*place)) 
-			altt <- c(altt, max(times) + 1)
-		}
-		if(max(altt) <= tj){
-			reft <- c(reft, max(times) + 1)
-			altt <- c(altt, (max(altt)*(1-place) + tj*place))
-		}
-	}
-	if(length(altt) == 0){
-		reft <- c(reft, max(times) + 1)		
-		altt <- tj*place
-	}
-	if(length(reft) == 0 & !sure.alt.is.derived){
-		reft <- tj*place		
-		altt <- c(altt, max(times) + 1)	
-	}
-	if(length(reft) == 0 & sure.alt.is.derived){
-		reft <- max(times) + 1		
-		altt <- altt #We are working with one fewer coalescence than in the other
-			     #cases, but we don't know when that coalescence was.
-	}
-	list(allt, reft, altt)
+add_mutation <- function(tree.all, tree.ref, tree.alt, allt, reft, altt, tj, times, sure.alt.is.derived = FALSE, place = 0.5){
+  #If both trees have at least two leaves (and  at least one coalescence time)	
+  if(length(reft) > 0 & length(altt) > 0){
+    #If we are sure that the alternative tree is derived but the
+    #tree-join time is more recent than the final
+    #coalescence in the alternative tree, then change the
+    #tree-join time to be just earlier than the last coalescence
+    #in the alternative tree.	
+    if(max(altt) > tj){
+      if(!is.monophyletic(tree.all, tree.alt$tip.label) & is.monophyletic(tree.all, tree.ref$tip.label)){
+        if(sure.alt.is.derived){
+          tj <- max(altt) + 0.001
+        }else{
+          reft <- c(reft, (max(reft) * (1-place) + tj * place))
+          altt <- c(altt, max(times) + 1)
+        }
+      }else if(!is.monophyletic(tree.all, tree.alt$tip.label) & !is.monophyletic(tree.all, tree.ref$tip.label)){
+        tj <- max(altt) + 0.001
+      }
+    }
+    if(max(altt) <= tj){
+      # keep the pre-defined reft and altt, add a mut.time (max(altt)*(1-place) + tj*place)
+      reft <- c(reft, max(times) + 1)
+      altt <- c(altt, (max(altt)*(1-place) + tj*place))
+    }
+  }
+  if(length(altt) == 0){
+    reft <- c(reft, max(times) + 1)		
+    altt <- tj*place
+  }
+  if(length(reft) == 0 & !sure.alt.is.derived){
+    reft <- tj*place		
+    altt <- c(altt, max(times) + 1)	
+  }
+  if(length(reft) == 0 & sure.alt.is.derived){
+    reft <- max(times) + 1		
+    altt <- altt #We are working with one fewer coalescence than in the other
+    #cases, but we don't know when that coalescence was.
+  }
+  list(allt, reft, altt)
 }
-
-
 
 
 
