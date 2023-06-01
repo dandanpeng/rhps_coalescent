@@ -450,15 +450,22 @@ add_mutation <- function(tree.all, tree.ref, tree.alt, allt, reft, altt, tj, tim
     #tree-join time to be just earlier than the last coalescence
     #in the alternative tree.	
     if(max(altt) > tj){
-      if(!is.monophyletic(tree.all, tree.alt$tip.label) & is.monophyletic(tree.all, tree.ref$tip.label)){
+      # max(altt) > tj means at least one sub tree is not monophyletic, it includes three situations:
+      # both of the sub-trees are not monophyletic
+      # only the ref tree is monophyletic
+      # only the alt tree is monophyletic (actully doesn't exist)
+      if(!is.monophyletic(tree.all, tree.alt$tip.label) & is.monophyletic(tree.all, tree.ref$tip.label)){# second case
         if(sure.alt.is.derived){
           tj <- max(altt) + 0.001
-        }else{
+          altt <- c(altt, tj) # we assume that the derived lineage have descendants in a very short time after the mutation show up (almost the same time)
+          reft <- c(reft, max(times) + 1)
+        }else{ # first case, we do a switch to let the reft be the derived tree the altt bet the ancestral tree
           reft <- c(reft, (max(reft) * (1-place) + tj * place))
           altt <- c(altt, max(times) + 1)
         }
       }else if(!is.monophyletic(tree.all, tree.alt$tip.label) & !is.monophyletic(tree.all, tree.ref$tip.label)){
-        tj <- max(altt) + 0.001
+        altt <- c(altt, max(reft) * (1-place) + max(altt) * place)
+        reft <- c(reft, max(times) + 1)
       }
     }
     if(max(altt) <= tj){
@@ -944,7 +951,7 @@ p_ests_wait <- function(ctime.list, time.eval, ell.ref = 5, ell.alt = 5, place =
 	if(tj >= lca){
 		Ns_alt <- rbind(Ns_alt, c(lca + (tj - lca)*place, 0, 0))
 	}
-if(tj < lca){
+  if(tj < lca){
 		Ns_alt <- rbind(Ns_alt, c(lca + 0.001, 0, 0))
 	}
 	p.ests <- numeric(length(time.eval))
