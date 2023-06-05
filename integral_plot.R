@@ -59,10 +59,13 @@ hei <- 4
 
 
 ############ Bias ####################
+# plot(rev(time) - max(time), weak0204.avg.err.mat[,1], type = "l", xlim = xl, ylim = yl.b,
+#      bty = "n", xlab = "Time (approximate kya)", xaxt = "n",
+#      ylab = "Bias", col = pal[1])
+#axis(1, at = seq(-0.25, 0, by = 0.05), labels = seq(120, 0, by = -24))
 plot(rev(time) - max(time), weak0204.avg.err.mat[,1], type = "l", xlim = xl, ylim = yl.b,
-     bty = "n", xlab = "Time (approximate kya)", xaxt = "n",
+     bty = "n", xlab = "Time", 
      ylab = "Bias", col = pal[1])
-axis(1, at = seq(-0.25, 0, by = 0.05), labels = seq(120, 0, by = -24))
 lines(rev(time) - max(time), weak0204.rent.avg.err.mat[,1] , col = pal[2])
 lines(rev(time) - max(time), weak0204.relate.avg.err.mat[,1] , col = pal[3])
 lines(rev(time) - max(time), weak0204.tsinfer.avg.err.mat[,1] , col = pal[4])
