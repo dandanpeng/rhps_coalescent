@@ -475,6 +475,7 @@ add_mutation <- function(tree.all, tree.ref, tree.alt, allt, reft, altt, tj, tim
     }
   }
   if(length(altt) == 0){
+<<<<<<< HEAD
     if(sure.alt.is.derived){
       reft <- c(reft, max(times) + 1)		
       altt <- tj*place
@@ -491,6 +492,19 @@ add_mutation <- function(tree.all, tree.ref, tree.alt, allt, reft, altt, tj, tim
       reft <- tj*place		
       altt <- c(altt, max(times) + 1)	
     }
+=======
+    reft <- c(reft, max(times) + 1)		
+    altt <- tj*place
+  }
+  if(length(reft) == 0 & !sure.alt.is.derived){
+    reft <- tj*place		
+    altt <- c(altt, max(times) + 1)	
+  }
+  if(length(reft) == 0 & sure.alt.is.derived){
+    reft <- max(times) + 1		
+    altt <- altt #We are working with one fewer coalescence than in the other
+    #cases, but we don't know when that coalescence was.
+>>>>>>> 8a953a77c35520f448ec48fd1942d9f344aed700
   }
   list(allt, reft, altt)
 }
@@ -864,7 +878,11 @@ estN_waittimes <- function(ctimevec, ell){
   # and original l (number of coalescence)
   wt <- numeric(length(ctimes))
   wt[1] <- ctimes[1]
+<<<<<<< HEAD
   n <- length(ctimevec)
+=======
+  n <- length(ctimevec) + 1
+>>>>>>> 8a953a77c35520f448ec48fd1942d9f344aed700
   l <- inds[1]
   N.ests[1] <- wt[1]/(2*(1/(n[1]-l) - 1/n[1]))
   N.vars[1] <- (N.ests[1]^2)*var.mult(n[1]-l, l)
@@ -899,7 +917,11 @@ estN_waittimes <- function(ctimevec, ell){
   }
   if(length(ctimes) > 1){
     for(i in 2:length(ctimes)){
+<<<<<<< HEAD
       n <- length(ctimevec) - ell*(i-1) # number of lineages
+=======
+      n <- length(ctimevec) + 1 - ell*(i-1) # number of lineages
+>>>>>>> 8a953a77c35520f448ec48fd1942d9f344aed700
       l <- inds[i] - inds[i-1] # number of coalescence between ctime[i] and ctime[i-1]
       N.ests[i] <- wt[i]/(2*(1/(n-l) - 1/n))
       N.vars[i] <- (N.ests[i]^2)*var.mult(n-l, l)
@@ -1320,7 +1342,7 @@ trees_to_times <- function(tree.all, tree.ref, tree.alt, times, sure.alt.is.deri
 		altt <- altt*units_in/units_out
 	}
 	tj <- tree_join_time(allt, reft, altt, mut.time)
-	add_mutation(tree.all, tree.ref, tree.alt, allt, reft, altt, tj, times, sure.alt.is.derived, place)
+	add_mutation(allt, reft, altt, tj, times, sure.alt.is.derived, place)
 }
 
 
