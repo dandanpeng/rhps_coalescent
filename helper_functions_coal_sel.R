@@ -1320,7 +1320,7 @@ trees_to_times <- function(tree.all, tree.ref, tree.alt, times, sure.alt.is.deri
 		altt <- altt*units_in/units_out
 	}
 	tj <- tree_join_time(allt, reft, altt, mut.time)
-	add_mutation(allt, reft, altt, tj, times, sure.alt.is.derived, place)
+	add_mutation(tree.all, tree.ref, tree.alt, allt, reft, altt, tj, times, sure.alt.is.derived, place)
 }
 
 
