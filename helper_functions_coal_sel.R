@@ -1000,6 +1000,7 @@ p_ests_wait <- function(ref.tree, alt.tree, ctime.list, time.eval, ell.ref = 5, 
 	p.ests <- numeric(length(time.eval))
 	var.ests <- p.ests
 	for(i in 1:length(time.eval)){
+	  print(i)
 		Ns.r.t <- getN_estNmat(Ns_ref, time.eval[i])
 		Ns.a.t <- getN_estNmat(Ns_alt, time.eval[i])
 		if(length(Ns.r.t) == 2 & length(Ns.a.t) == 2){
