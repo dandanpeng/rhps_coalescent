@@ -174,6 +174,11 @@ for(i in 1:n.loci){
   relate_trees_list[[i]]$edge.length <- relate_trees_list[[i]]$edge.length*2/mean(tmrca.relate)
 }
 
+#rescale branxh length of tsinfer trees
+for(i in 1:n.loci){
+  tsinfer_trees_list[[i]]$edge.length <- tsinfer_trees_list[[i]]$edge.length*2
+}
+
 ##rescale branch length of argweaver trees
 ##The original branch lengths are given in units of generations.
 for(i in 1:n.loci){
@@ -182,6 +187,9 @@ for(i in 1:n.loci){
         argweaver_trees_list[[i]][[j]]$edge.length <- argweaver_trees_list[[i]][[j]]$edge.length/(2*N)
     }
 }
+
+
+
 #split into ancestral and derived trees and retrieve coalescence times.
 
 

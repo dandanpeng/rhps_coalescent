@@ -846,7 +846,7 @@ est_af_var_mom.smoothtime_coaltimes <- function(lins, times = seq(0.005, 8.005, 
 #and column 3 variance of the N estimate. If there are less than 
 #ell coalescence left after last estimate, just use the ones that
 #are left.
-estN_waittimes <- function(ctimevec, ell){
+estN_waittimes <- function(tree, ctimevec, ell){
   ctimevec <- sort(ctimevec)
   if(length(ctimevec) < ell){inds <- length(ctimevec)}
   if(length(ctimevec) == ell){inds <- ell}	
@@ -862,46 +862,84 @@ estN_waittimes <- function(ctimevec, ell){
   # get original waiting time (includes 0 when there is polytomy),
   # original n (number of lineages),
   # and original l (number of coalescence)
-  wt <- numeric(length(ctimes))
+  wt <- numeric()
   wt[1] <- ctimes[1]
-  n <- length(ctimevec)
+  n <- length(ctimes)
   l <- inds[1]
   N.ests[1] <- wt[1]/(2*(1/(n[1]-l) - 1/n[1]))
   N.vars[1] <- (N.ests[1]^2)*var.mult(n[1]-l, l)
   if(length(ctimes) > 1){
-    for(i in 2:length(ctimes)){
-      # set a tolerance of the difference (here we set it to 10 decimal places)
-      wt[i] <- round(ctimes[i] - ctimes[i-1], 10)
-    }
+    wt <- round(c(wt, diff(ctimes)), 10)
   }	
-  # for each group of consecutive 0 in the waiting-time vector (each polytomy),
-  # find the index of the first 0 and the times that 0 appears in that group
+  
+  # find the polytomy/polytomies
   if(0 %in% wt){
-    zero_first_occur <- which(diff(wt == 0) == 1) + 1
-    zero_lengths <- rle(wt)$lengths[rle(wt)$values == 0]
-    # assign a new value for each 0 in wt vector
-    for(k in 1:length(zero_lengths)){
-      n_lin <- zero_lengths[k] + 2
-      n_col <- zero_lengths[k] + 1
-      interval <- wt[zero_first_occur[k] - 1]
-      prob <- numeric()
-      p = 0
-      while((n_lin - p) > 2 & p <= n_lin){
-        prob[p + 1] <- 1/choose(n_lin - p, 2)
-        p = p + 1
+    multi_tree <- di2multi(tree)
+    num_children <- as.data.frame(table(multi_tree$edge[,1]))
+    num_children$Var1 <- as.numeric(as.character(num_children$Var1))
+    
+    polytomy <- num_children[num_children$Freq > 2,]
+    #num_polytomy <- length(polytomy)
+    for(node in polytomy$Var1){
+      polytomy_indices <- which(multi_tree$edge[,1] == node)
+      interval <- min(multi_tree$edge.length[polytomy_indices])
+      n_lin <- polytomy[polytomy$Var1 == node, 'Freq']
+      n_col = n_lin - 1
+      if(n_lin > 3){
+        prob <- numeric()
+        p = 0
+        while((n_lin - p) > 2 & p <= n_lin){
+          prob[p + 1] <- 1/choose(n_lin - p, 2)
+          p = p + 1
+        }
+        sum_p <- sum(prob)
+        new_wt <- prob * (interval/sum_p)
+      }else{
+        new_wt <- interval/choose(n_lin, 2)
       }
-      sum_p <- sum(prob)
-      new_wt <- prob * (interval/sum_p)
-      wt[zero_first_occur[k]:(zero_first_occur[k] + zero_lengths[k] - 1)] <- new_wt
-      ctimevec[zero_first_occur[k]:(zero_first_occur[k] + zero_lengths[k] - 1)] <- ctimevec[zero_first_occur[k] - 1] + new_wt
+
+      
+      same_col_index <- which(abs(ctimes - coal.time(multi_tree, node)) < 10e-10)
+      if(length(same_col_index) > 2){
+        ctimes[same_col_index[1]:same_col_index[length(same_col_index)-1]] <- ctimes[same_col_index[1]:same_col_index[length(same_col_index) - 1]] - new_wt
+      }else{
+        ctimes[same_col_index[1]] <- ctimes[same_col_index[1]] - new_wt
+      }
+      ctimes <- sort(ctimes)
     }
-    ctimes <- ctimevec[inds]
   }
+  
+  
+  # # for each group of consecutive 0 in the waiting-time vector (each polytomy),
+  # # find the index of the first 0 and the times that 0 appears in that group
+  # if(0 %in% wt){
+  #   zero_first_occur <- which(diff(wt == 0) == 1) + 1
+  #   zero_lengths <- rle(wt)$lengths[rle(wt)$values == 0]
+  #   # assign a new value for each 0 in wt vector
+  #   for(k in 1:length(zero_lengths)){
+  #     n_lin <- zero_lengths[k] + 2
+  #     n_col <- zero_lengths[k] + 1
+  #     interval <- wt[zero_first_occur[k] - 1]
+  #     prob <- numeric()
+  #     p = 0
+  #     while((n_lin - p) > 2 & p <= n_lin){
+  #       prob[p + 1] <- 1/choose(n_lin - p, 2)
+  #       p = p + 1
+  #     }
+  #     sum_p <- sum(prob)
+  #     new_wt <- prob * (interval/sum_p)
+  #     wt[zero_first_occur[k]:(zero_first_occur[k] + zero_lengths[k] - 1)] <- new_wt
+  #     ctimevec[zero_first_occur[k]:(zero_first_occur[k] + zero_lengths[k] - 1)] <- ctimevec[zero_first_occur[k] - 1] + new_wt
+  #   }
+  #   ctimes <- ctimevec[inds]
+  # }
+  
   if(length(ctimes) > 1){
     for(i in 2:length(ctimes)){
-      n <- length(ctimevec) - ell*(i-1) # number of lineages
+      wt <- ctimes[i] - ctimes[i-1]
+      n <- length(ctimes) - ell*(i-1) # number of lineages
       l <- inds[i] - inds[i-1] # number of coalescence between ctime[i] and ctime[i-1]
-      N.ests[i] <- wt[i]/(2*(1/(n-l) - 1/n))
+      N.ests[i] <- wt/(2*(1/(n-l) - 1/n))
       N.vars[i] <- (N.ests[i]^2)*var.mult(n-l, l)
     }
   }	
@@ -947,9 +985,9 @@ ts_var_quotient <- function(mu_n, var_n, mu_d, var_d, cov_nd){
 #This version assumes that the alt allele is derived and assigns alt
 #frequency to 0 before place proportion on the branch on which the mutation
 #must have occurred. 
-p_ests_wait <- function(ctime.list, time.eval, ell.ref = 5, ell.alt = 5, place = 0.5, ord2adj = FALSE){
-	Ns_ref <- estN_waittimes(ctime.list[[2]], ell.ref)
-	Ns_alt <- estN_waittimes(ctime.list[[3]], ell.alt)
+p_ests_wait <- function(ref.tree, alt.tree, ctime.list, time.eval, ell.ref = 5, ell.alt = 5, place = 0.5, ord2adj = FALSE){
+	Ns_ref <- estN_waittimes(ref.tree, ctime.list[[2]], ell.ref)
+	Ns_alt <- estN_waittimes(alt.tree, ctime.list[[3]], ell.alt)
 	#tree join time is the time in full tree that doesn't appear in either subtree.
 	tj <- tree_join_time(ctime.list[[1]], ctime.list[[2]][-length(ctime.list[[2]])], ctime.list[[3]][-length(ctime.list[[3]])], NULL)
 	lca <- Ns_alt[nrow(Ns_alt), 1]	
@@ -1847,7 +1885,7 @@ aw_split_tree <- function(tool_name, argweaver_trees_list){
 # store coalescent times of the whole tree, anc tree and der tree into one list
 coal_time_ls <- function(tree_ls, anc_trees, der_trees, tool_name, sure.alt.is.derived = TRUE){
   times.c <- list()
-  if(tool_name == "ms" | tool_name == "rent" | tool_name == "tsinfer"){
+  if(tool_name == "ms" | tool_name == "rent"){
     for(i in 1:length(tree_ls)){
       times.c[[i]] <- trees_to_times(tree_ls[[i]], anc_trees[[i]], der_trees[[i]], time, sure.alt.is.derived, units_in = 4)
     }
