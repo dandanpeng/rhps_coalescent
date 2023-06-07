@@ -464,17 +464,16 @@ add_mutation <- function(tree.all, tree.ref, tree.alt, allt, reft, altt, tj, tim
           altt <- c(altt, max(times) + 1)
         }
       }else if(!is.monophyletic(tree.all, tree.alt$tip.label) & !is.monophyletic(tree.all, tree.ref$tip.label)){
-        altt <- c(altt, max(reft) * (1-place) + max(altt) * place)
+        tj <- max(altt) + 0.001
+        altt <- c(altt, tj)
         reft <- c(reft, max(times) + 1)
       }
-    }
-    if(max(altt) <= tj){
+    }else if(max(altt) <= tj){
       # keep the pre-defined reft and altt, add a mut.time (max(altt)*(1-place) + tj*place)
       reft <- c(reft, max(times) + 1)
       altt <- c(altt, (max(altt)*(1-place) + tj*place))
     }
-  }
-  if(length(altt) == 0){
+  }else if(length(altt) == 0){
     if(sure.alt.is.derived){
       reft <- c(reft, max(times) + 1)		
       altt <- tj*place
@@ -482,8 +481,7 @@ add_mutation <- function(tree.all, tree.ref, tree.alt, allt, reft, altt, tj, tim
       reft <- c(reft, (max(reft)*(1-place) + tj*place))
       altt <- max(times) + 1
     }
-  }
-  if(length(reft) == 0){
+  }else if(length(reft) == 0){
     if(sure.alt.is.derived){
       reft <- max(times) + 1	
       altt <- c(altt, max(altt) * (1-place) + tj*place)
@@ -1000,7 +998,6 @@ p_ests_wait <- function(ref.tree, alt.tree, ctime.list, time.eval, ell.ref = 5, 
 	p.ests <- numeric(length(time.eval))
 	var.ests <- p.ests
 	for(i in 1:length(time.eval)){
-	  print(i)
 		Ns.r.t <- getN_estNmat(Ns_ref, time.eval[i])
 		Ns.a.t <- getN_estNmat(Ns_alt, time.eval[i])
 		if(length(Ns.r.t) == 2 & length(Ns.a.t) == 2){
