@@ -879,6 +879,13 @@ estN_waittimes <- function(tree, ctimevec, ell){
     polytomy <- num_children[num_children$Freq > 2,]
     #num_polytomy <- length(polytomy)
     for(node in polytomy$Var1){
+      # tryCatch({
+      #   # Code inside the loop that generates a warning
+      #   warning(paste("Warning in iteration", node))
+      # }, warning = function(w) {
+      #   # Print a custom message with the iteration number
+      #   cat("Warning in iteration", node, "\n")
+      # })
       polytomy_indices <- which(multi_tree$edge[,1] == node)
       interval <- min(multi_tree$edge.length[polytomy_indices])
       n_lin <- polytomy[polytomy$Var1 == node, 'Freq']
@@ -899,7 +906,7 @@ estN_waittimes <- function(tree, ctimevec, ell){
       
       same_col_index <- which(abs(ctimes - coal.time(multi_tree, node)) < 10e-10)
       if(length(same_col_index) > 2){
-        ctimes[same_col_index[1]:same_col_index[length(same_col_index)-1]] <- ctimes[same_col_index[1]:same_col_index[length(same_col_index) - 1]] - new_wt
+        ctimes[same_col_index[1]:same_col_index[length(new_wt)]] <- ctimes[same_col_index[1]:same_col_index[length(new_wt)]] - new_wt
       }else{
         ctimes[same_col_index[1]] <- ctimes[same_col_index[1]] - new_wt
       }
@@ -935,15 +942,18 @@ estN_waittimes <- function(tree, ctimevec, ell){
   if(length(ctimes) > 1){
     for(i in 2:length(ctimes)){
       wt <- ctimes[i] - ctimes[i-1]
-      if(wt == 0){
-        pass
+      n <- length(ctimes) - ell*(i-1) # number of lineages
+      l <- inds[i] - inds[i-1] # number of coalescence between ctime[i] and ctime[i-1]
+      if(wt == 0 | n == 1){
+        N.ests[i] <- N.ests[i-1]
+        N.vars[i] <- N.vars[i-1]
       }else{
-        n <- length(ctimes) - ell*(i-1) # number of lineages
-        l <- inds[i] - inds[i-1] # number of coalescence between ctime[i] and ctime[i-1]
         N.ests[i] <- wt/(2*(1/(n-l) - 1/n))
         N.vars[i] <- (N.ests[i]^2)*var.mult(n-l, l)
        }
     }
+    #N.ests <-  c(N.ests, N.ests[length(N.ests)])
+    #N.vars <- c(N.vars, N.vars[length(N.vars)])
   }	
   cbind(ctimes, N.ests, N.vars)
 }
@@ -1002,8 +1012,15 @@ p_ests_wait <- function(ref.tree, alt.tree, ctime.list, time.eval, ell.ref = 5, 
 	p.ests <- numeric(length(time.eval))
 	var.ests <- p.ests
 	for(i in 1:length(time.eval)){
+	  print(i)
 		Ns.r.t <- getN_estNmat(Ns_ref, time.eval[i])
 		Ns.a.t <- getN_estNmat(Ns_alt, time.eval[i])
+		if(length(Ns.a.t) != 2){
+		  Ns.a.t = Ns.a.t[c(1,length(Ns.a.t)/2)]
+		}
+		if(length(Ns.r.t) != 2){
+		  Ns.r.t = Ns.r.t[c(1, length(Ns.a.t)/2)]
+		}
 		if(length(Ns.r.t) == 2 & length(Ns.a.t) == 2){
 		  p.ests[i] <- Ns.a.t[1]/(Ns.a.t[1] + Ns.r.t[1])
 		}else{
