@@ -2027,54 +2027,90 @@ hap_to_mat <- function(rent_input_file){
 }
 
 ## transfer rent+ input to RELATE recognized format
-relate_input <- function(derived_info, snp_pos){
+
+# .haps input file
+hap_input <- function(derived_info, snp_pos){
   chrom_num <- rep(1, length(snp_pos))
-  snp_id <- rep(".", length(snp_pos))
+  snp_id <- numeric()
+  for(id in 1:length(snp_pos)){
+    snp_id[id] <- paste("snp", as.character(id), sep = "")
+  }
+  #snp_id <- rep(".", length(snp_pos))
   ances_alle <- rep("A", length(snp_pos))
   alter_alle <- rep("C", length(snp_pos))
-  
-  # randomly group a pair of columns to make them the haplotypes carried by an individual
-  #shuffled_derived_info <- derived_info[, sample(ncol(derived_info))]
-  
-  # .haps input file
-  haps <- cbind(chrom_num, snp_id, snp_pos, ances_alle, alter_alle, derived_info)
-  
-  # .sample input file
-  id1 <- c()
+  cbind(chrom_num, snp_id, snp_pos, ances_alle, alter_alle, derived_info)
+}
+
+# .sample input file
+sample_input <- function(n_chromss){
+  ID_1 <- c()
   for(samp_id in 1:(n_chromss/2)){
-    id1 <- append(id1, paste(c("Sample", samp_id), collapse = ""))
+    ID_1 <- append(ID_1, paste(c("Sample", samp_id), collapse = ""))
   }
   
-  id2 <- id1
+  ID_2 <- ID_1
   missing <- rep(0, n_chromss/2)
-  sample <- cbind(id1, id2, missing)
-  sample <- rbind(rep(0, 3), sample)
+  sample <- cbind(ID_1, ID_2, missing)
+  rbind(rep(0, 3), sample)
+}
+
+# relate .map input file
+relate_map_input <- function(derived_info, snp_pos){
+  haps <- hap_input(derived_info, snp_pos)
   
-  # .map input file
+  sample <- sample_input(n_chromss)
+  
   Position.bp. <- snp_pos
   Rate.cM.Mb <- 1/(0.01/(2.5*10^(-8)))/10^(-6) #E(N) = r*d = 0.01, unit of d is bp/cM
   Map.cM <- snp_pos * 0.25*10^(-5) # position(bp) * cM/bp 
-  map <- cbind(Position.bp., rep(Rate.cM.Mb, length(Position.bp.)), Map.cM)
+  cbind(Position.bp., rep(Rate.cM.Mb, length(Position.bp.)), Map.cM)
+}
+
+# arg-needle map input file
+argneedle_map_input <- function(snp_pos){
+  chrom_num <- rep(1, length(snp_pos))
+  snp_id <- numeric()
+  for(id in 1:length(snp_pos)){
+    snp_id[id] <- paste("snp", as.character(id), sep = "")
+  }
+  #snp_id <- rep(".", length(snp_pos))
+  gen_pos <- snp_pos * 0.25*10^(-5) # position(bp) * cM/bp 
+  cbind(chrom_num, snp_id, gen_pos, snp_pos)
+}
+
+relate_input <- function(derived_info, snp_pos, n_chromss){
+  haps <- hap_input(derived_info, snp_pos)
+  sample <- sample_input(n_chromss)
+  map <- relate_map_input(snp_pos)
   
   fwrite(as.data.frame(haps), paste(new_temp, "/data.haps", sep = ""), col.names = FALSE, sep = " ")
   fwrite(as.data.frame(sample), paste(new_temp, "/data.sample", sep = ""), sep = " ")
-  fwrite(as.data.frame(map), paste(new_temp, "/data.map", sep = ""), sep = " ")
-  
+  write.table(as.data.frame(map), file = paste(new_temp, "/data.map", sep = ""), sep = '\t', col.names = FALSE)
+  #fwrite(as.data.frame(map), paste(new_temp, "/data.map", sep = ""), sep = " ")
   #system(paste("mv", paste("data", as.character(iter), ".*", sep = ""), new_temp))
 }
-
 
 change_aw_label <- function(ori.label){
   return(real_label[as.numeric(ori.label) + 1]) #the original labels start from 0 so we need to add 1 here
 }
 
-check_risky_structure <- function(tree, der_tree, anc_tree){
-  if(!is.monophyletic(tree, unlist(der_tree$tip.label)) & !is.monophyletic(tree, unlist(anc_tree$tip.label))){
-    return(TRUE)
-  }else{
-    return(FALSE)
-  }
+arg_needle_input <- function(derived_info, snp_pos, n_chromss){
+  haps <- hap_input(derived_info, snp_pos)
+  sample <- sample_input(n_chromss)
+  map <- argneedle_map_input(snp_pos)
+  
+  fwrite(as.data.frame(haps), paste(new_temp, "/an_data.haps", sep = ""), col.names = FALSE, sep = " ")
+  fwrite(as.data.frame(sample), paste(new_temp, "/an_data.sample", sep = ""), sep = " ")
+  fwrite(as.data.frame(map), col.names = FALSE, paste(new_temp, "/an_data.map", sep = ""), sep = " ")
 }
+
+# check_risky_structure <- function(tree, der_tree, anc_tree){
+#   if(!is.monophyletic(tree, unlist(der_tree$tip.label)) & !is.monophyletic(tree, unlist(anc_tree$tip.label))){
+#     return(TRUE)
+#   }else{
+#     return(FALSE)
+#   }
+# }
 
 
 
