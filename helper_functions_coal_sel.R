@@ -2057,7 +2057,6 @@ sample_input <- function(n_chromss){
 # relate .map input file
 relate_map_input <- function(derived_info, snp_pos){
   haps <- hap_input(derived_info, snp_pos)
-  
   sample <- sample_input(n_chromss)
   
   Position.bp. <- snp_pos
@@ -2081,7 +2080,7 @@ argneedle_map_input <- function(snp_pos){
 relate_input <- function(derived_info, snp_pos, n_chromss){
   haps <- hap_input(derived_info, snp_pos)
   sample <- sample_input(n_chromss)
-  map <- relate_map_input(snp_pos)
+  map <- relate_map_input(derived_info, snp_pos)
   
   fwrite(as.data.frame(haps), paste(new_temp, "/data.haps", sep = ""), col.names = FALSE, sep = " ")
   fwrite(as.data.frame(sample), paste(new_temp, "/data.sample", sep = ""), sep = " ")
