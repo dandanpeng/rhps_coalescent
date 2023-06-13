@@ -2085,7 +2085,7 @@ relate_input <- function(derived_info, snp_pos, n_chromss){
   
   fwrite(as.data.frame(haps), paste(new_temp, "/data.haps", sep = ""), col.names = FALSE, sep = " ")
   fwrite(as.data.frame(sample), paste(new_temp, "/data.sample", sep = ""), sep = " ")
-  write.table(as.data.frame(map), file = paste(new_temp, "/data.map", sep = ""), sep = '\t', col.names = FALSE)
+  write.table(as.data.frame(map), file = paste(new_temp, "/data.map", sep = ""), sep = '\t', col.names = NA)
   #fwrite(as.data.frame(map), paste(new_temp, "/data.map", sep = ""), sep = " ")
   #system(paste("mv", paste("data", as.character(iter), ".*", sep = ""), new_temp))
 }
@@ -2101,7 +2101,8 @@ arg_needle_input <- function(derived_info, snp_pos, n_chromss){
   
   fwrite(as.data.frame(haps), paste(new_temp, "/an_data.haps", sep = ""), col.names = FALSE, sep = " ")
   fwrite(as.data.frame(sample), paste(new_temp, "/an_data.sample", sep = ""), sep = " ")
-  fwrite(as.data.frame(map), col.names = FALSE, paste(new_temp, "/an_data.map", sep = ""), sep = " ")
+  write.table(as.data.frame(map), file = paste(new_temp, "/an_data.map", sep = ""), sep = "\t", col.names = FALSE,
+              row.names = FALSE, quote = FALSE)
 }
 
 # check_risky_structure <- function(tree, der_tree, anc_tree){
