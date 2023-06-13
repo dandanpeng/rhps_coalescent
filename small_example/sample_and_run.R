@@ -136,7 +136,7 @@ for(i in new_argv$loci_start:new_argv$loci_end){
     ############################### RELATE #############################
     #transfer rent+ input to RELATE recognized format
     if(!is.na(new_argv$relate)){
-        relate_input(derived_info, snp_pos)
+        relate_input(derived_info, snp_pos, n_chromss)
         
         print("start to run RELATE")
        
