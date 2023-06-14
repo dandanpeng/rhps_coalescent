@@ -210,6 +210,8 @@ for(i in new_argv$loci_start:new_argv$loci_end){
     
     if(!is.na(new_argv$argneedle)){
       print("start to run ARG-Needle")
+      
+      setwd(new_temp)
       arg_needle_input(derived_info, snp_pos, n_chromss)
       system(paste("~/.local/bin/arg_needle --hap_gz ", new_temp, "/an_data.haps --map ", new_temp, "/an_data.map --out an_data", sep = ""))
     }
