@@ -244,8 +244,7 @@ if(!is.na(new_argv$relate)){
 ##The original branch lengths are given in units of generations.
 if(!is.na(new_argv$tsinfer)){
   for(i in 1:(new_argv$loci_end - new_argv$loci_start + 1)){
-      print(i)
-      tsinfer_trees_list[[i]]$edge.length <- tsinfer_trees_list[[i]]$edge.length/(4*N)
+      tsinfer_trees_list[[i]]$edge.length <- tsinfer_trees_list[[i]]$edge.length*2
   }
 }
 
