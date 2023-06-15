@@ -877,7 +877,6 @@ estN_waittimes <- function(tree, ctimevec, ell){
     num_children$Var1 <- as.numeric(as.character(num_children$Var1))
     
     polytomy <- num_children[num_children$Freq > 2,]
-    #num_polytomy <- length(polytomy)
     for(node in polytomy$Var1){
       # tryCatch({
       #   # Code inside the loop that generates a warning
@@ -1012,9 +1011,14 @@ p_ests_wait <- function(ref.tree, alt.tree, ctime.list, time.eval, ell.ref = 5, 
 	p.ests <- numeric(length(time.eval))
 	var.ests <- p.ests
 	for(i in 1:length(time.eval)){
-	  print(i)
-		Ns.r.t <- getN_estNmat(Ns_ref, time.eval[i])
-		Ns.a.t <- getN_estNmat(Ns_alt, time.eval[i])
+	  if(Ns_ref[dim(Ns_ref)[1], 1] >= max(time) + 1){
+	    Ns.r.t <- getN_estNmat(Ns_ref, time.eval[i])
+		  Ns.a.t <- getN_estNmat(Ns_alt, time.eval[i])
+	  }else if(Ns_alt[dim(Ns_alt), 1] >= max(time) + 1){
+	    Ns.r.t <- getN_estNmat(Ns_alt, time.eval[i])
+	    Ns.a.t <- getN_estNmat(Ns_ref, time.eval[i])
+	  }
+
 		if(length(Ns.a.t) != 2){
 		  Ns.a.t = Ns.a.t[c(1,length(Ns.a.t)/2)]
 		}
