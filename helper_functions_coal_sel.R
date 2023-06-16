@@ -449,7 +449,7 @@ add_mutation <- function(tree.all, tree.ref, tree.alt, allt, reft, altt, tj, tim
     #coalescence in the alternative tree, then change the
     #tree-join time to be just earlier than the last coalescence
     #in the alternative tree.	
-    if(max(altt) > tj){
+    if(max(altt) - tj > 10e-10){
       # max(altt) > tj means at least one sub tree is not monophyletic, it includes three situations:
       # both of the sub-trees are not monophyletic
       # only the ref tree is monophyletic
@@ -468,7 +468,7 @@ add_mutation <- function(tree.all, tree.ref, tree.alt, allt, reft, altt, tj, tim
         altt <- c(altt, tj)
         reft <- c(reft, max(times) + 1)
       }
-    }else if(max(altt) <= tj){
+    }else if(max(altt) - tj <= 10e-10){
       # keep the pre-defined reft and altt, add a mut.time (max(altt)*(1-place) + tj*place)
       reft <- c(reft, max(times) + 1)
       altt <- c(altt, (max(altt)*(1-place) + tj*place))
