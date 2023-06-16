@@ -413,6 +413,20 @@ coal.times <- function(tree){
 	sort(sapply(int.nodes, coal.time, tree = tree, time = 0))
 }
 
+#return the pairwise coalescent times
+#input is an ape-style phylo object.
+pair.coal.times <- function(tree){
+  tip.comb <- combn(tree$tip.label, 2)
+  mrca <- numeric(0)
+  for(i in 1:(dim(tip.comb)[2])){
+    mrca[i] <- getMRCA(tree, tip.comb[,i])
+  }
+  mrca_time <- numeric(0)
+  for(j in 1:length(mrca)){
+    mrca_time[j] <- coal.time(tree, mrca[j])
+  }
+  return(mrca_time)
+}
 
 #Return the time at which two subtrees are joined.
 #input is coalescence time vectors for the full tree (allt) and two subtrees (anct and dert).
