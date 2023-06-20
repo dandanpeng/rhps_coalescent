@@ -416,16 +416,9 @@ coal.times <- function(tree){
 #return the pairwise coalescent times
 #input is an ape-style phylo object.
 pair.coal.times <- function(tree){
-  tip.comb <- combn(tree$tip.label, 2)
-  mrca <- numeric(0)
-  for(i in 1:(dim(tip.comb)[2])){
-    mrca[i] <- getMRCA(tree, tip.comb[,i])
-  }
-  mrca_time <- numeric(0)
-  for(j in 1:length(mrca)){
-    mrca_time[j] <- coal.time(tree, mrca[j])
-  }
-  return(mrca_time)
+  pair_time_mat <- cophenetic.phylo(tree)
+  pair_time_vec <- pair_time_mat[lower.tri(pair_time_mat, diag = FALSE)]
+  return(pair_time_vec/2)
 }
 
 #Return the time at which two subtrees are joined.
