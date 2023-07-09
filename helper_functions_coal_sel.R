@@ -481,20 +481,21 @@ add_mutation <- function(tree.all, tree.ref, tree.alt, allt, reft, altt, tj, tim
       altt <- c(altt, (max(altt)*(1-place) + tj*place))
     }
   }else if(length(altt) == 0){
-    if(sure.alt.is.derived){
-      reft <- c(reft, max(times) + 1)		
-      altt <- tj*place
-    }else{
-      reft <- c(reft, (max(reft)*(1-place) + tj*place))
-      altt <- max(times) + 1
-    }
+        reft <- c(reft, max(times) + 1)		
+        altt <- tj*place
   }else if(length(reft) == 0){
-    if(sure.alt.is.derived){
+    if(tj - max(altt) <= 10e-10){
+      if(sure.alt.is.derived){
+        tj <- max(altt) + 0.001
+        altt <- c(altt, tj) # we assume that the derived lineage have descendants in a very short time after the mutation show up (almost the same time)
+        reft <- c(reft, max(times) + 1)
+      }else{
+        reft <- tj*place		
+        altt <- c(altt, max(times) + 1)	
+      }
+    }else{
       reft <- max(times) + 1	
       altt <- c(altt, max(altt) * (1-place) + tj*place)
-    }else{
-      reft <- tj*place		
-      altt <- c(altt, max(times) + 1)	
     }
   }
   list(allt, reft, altt)
@@ -885,6 +886,9 @@ estN_waittimes <- function(tree, ctimevec, ell){
     
     polytomy <- num_children[num_children$Freq > 2,]
     for(node in polytomy$Var1){
+      # find the position of polytomy time in the coal time vector
+      same_coal_index <- which(abs(ctimes - coal.time(multi_tree, node)) < 10e-10)
+      interval <- wt[same_coal_index[1]]
       # tryCatch({
       #   # Code inside the loop that generates a warning
       #   warning(paste("Warning in iteration", node))
@@ -892,30 +896,24 @@ estN_waittimes <- function(tree, ctimevec, ell){
       #   # Print a custom message with the iteration number
       #   cat("Warning in iteration", node, "\n")
       # })
-      polytomy_indices <- which(multi_tree$edge[,1] == node)
-      interval <- min(multi_tree$edge.length[polytomy_indices])
-      n_lin <- polytomy[polytomy$Var1 == node, 'Freq']
-      n_col = n_lin - 1
-      if(n_lin > 3){
-        prob <- numeric()
-        p = 0
-        while((n_lin - p) > 2 & p <= n_lin){
-          prob[p + 1] <- 1/choose(n_lin - p, 2)
-          p = p + 1
+      
+      n_lin_avail <- length(ctimes) - same_coal_index[1] + 2
+      #n_lin_polytomy <- polytomy[polytomy$Var1 == node, 'Freq']
+      n_coal = length(same_coal_index) 
+      prob <- numeric()
+      prob[1] = 1/choose(n_lin_avail, 2)
+      
+      if(n_coal > 2){
+        for(p in 1:(n_coal-2)){
+          prob[p+1] <- 1/choose(n_lin_avail - p, 2)
         }
         sum_p <- sum(prob)
         new_wt <- prob * (interval/sum_p)
-      }else{
-        new_wt <- interval/choose(n_lin, 2)
+      }else if(n_coal == 2){
+        new_wt <- interval/2
       }
 
-      
-      same_col_index <- which(abs(ctimes - coal.time(multi_tree, node)) < 10e-10)
-      if(length(same_col_index) > 2){
-        ctimes[same_col_index[1]:same_col_index[length(new_wt)]] <- ctimes[same_col_index[1]:same_col_index[length(new_wt)]] - new_wt
-      }else{
-        ctimes[same_col_index[1]] <- ctimes[same_col_index[1]] - new_wt
-      }
+      ctimes[same_coal_index[-length(same_coal_index)]] <- ctimes[same_coal_index[-length(same_coal_index)]] - new_wt
       ctimes <- sort(ctimes)
     }
   }

@@ -213,7 +213,7 @@ for(i in new_argv$loci_start:new_argv$loci_end){
       
       setwd(new_temp)
       arg_needle_input(derived_info, snp_pos, n_chromss)
-      system(paste("~/.local/bin/arg_needle --hap_gz ", new_temp, "/an_data.haps --map ", new_temp, "/an_data.map --out an_data", sep = ""))
+      system(paste("~/.local/bin/arg_needle --normalize 0 --hap_gz ", new_temp, "/an_data.haps --map ", new_temp, "/an_data.map --out an_data", sep = ""))
     }
     
     #save the haplotypes produced by ms (and fed to rent+) in a list entry.
