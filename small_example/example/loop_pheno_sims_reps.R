@@ -2,9 +2,9 @@ library(ape)
 library(reticulate)
 library(argparser)
 library(data.table)
-use_python("/home1/dandanpe/anaconda3/bin/python3.9")
-#source_python("ts_py_working.py")
-source_python("argweaver_input.py")
+use_python("/spack/2206/apps/linux-centos7-x86_64_v3/gcc-11.3.0/python-3.11.3-gl2q3yz/bin/python")
+#use_python("/home1/dandanpe/anaconda3/bin/python3.9")
+source_python("utils.py")
 
 p<- arg_parser("simulation parameters")
 p <- add_argument(p, "--n_chromss", help = "number of chromosomes", type = "numeric")
@@ -121,9 +121,9 @@ print("start for loop")
 for(iter in new_argv$iter_start:new_argv$iter_end){
     print(strsplit(new_argv$out, '_')[[1]][1])
     if(strsplit(new_argv$out, '_')[[1]][1] == "nosel"){
-        ms_fn <- paste("nosel_true_sim/loci100_sintens0_N10000_nchr", as.character(new_arg$n_chromss), "_ton0.02_toff0.02_herit1_", as.character(iter), ".RData", sep = "")
+        ms_fn <- paste("nosel_true_sim/loci100_sintens0_N10000_nchr", as.character(new_argv$n_chromss), "_ton0.02_toff0.02_herit1_", as.character(iter), ".RData", sep = "")
     }else if(strsplit(new_argv$out, '_')[[1]][1] == "recent"){
-        ms_fn <- paste("recent_true_sim/loci100_sintens0.005_N10000_nchr", as.character(new_arg$n_chromss),"_ton0.04_toff0.02_herit1_", as.character(iter), ".RData", sep = "")
+        ms_fn <- paste("recent_true_sim/loci100_sintens0.005_N10000_nchr", as.character(new_argv$n_chromss),"_ton0.04_toff0.02_herit1_", as.character(iter), ".RData", sep = "")
     }
     load(ms_fn)
     n.loci <- new_argv$n_loci
@@ -137,6 +137,7 @@ for(iter in new_argv$iter_start:new_argv$iter_end){
     #out_dir <- "recent_20_20_out"
     aw_sample <- 50
     source(helper_fn)
+    asmc_freq(n_ders)
     source("../sample_and_run.R")
     #source("../sample_run_wo_rescale.R")
 }

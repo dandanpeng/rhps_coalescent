@@ -632,10 +632,6 @@ p.ancs <- function(m0, mt, N0, Nt, t, form = "linear", frac.swit = 0.5, func.use
 
 
 
-
-
-
-
 #The scaled time expected before each of the n-1 coalescent events from n lineages
 #down to 1. 
 coal.exp.scaledtime <- function(n){
@@ -880,7 +876,7 @@ estN_waittimes <- function(tree, ctimevec, ell){
   
   # find the polytomy/polytomies
   if(0 %in% wt){
-    multi_tree <- di2multi(tree)
+    multi_tree <- di2multi(tree, tol = 10e-10)
     num_children <- as.data.frame(table(multi_tree$edge[,1]))
     num_children$Var1 <- as.numeric(as.character(num_children$Var1))
     
@@ -911,6 +907,8 @@ estN_waittimes <- function(tree, ctimevec, ell){
         new_wt <- prob * (interval/sum_p)
       }else if(n_coal == 2){
         new_wt <- interval/2
+      }else{
+        new_wt <- 0
       }
 
       ctimes[same_coal_index[-length(same_coal_index)]] <- ctimes[same_coal_index[-length(same_coal_index)]] - new_wt
@@ -2084,6 +2082,23 @@ argneedle_map_input <- function(snp_pos){
   #snp_id <- rep(".", length(snp_pos))
   gen_pos <- snp_pos * 0.25*10^(-5) # position(bp) * cM/bp 
   cbind(chrom_num, snp_id, gen_pos, snp_pos)
+}
+
+# ASMC decoding file
+# frequencies
+asmc_freq <- function(n_ders){
+   chrom_num <- rep(1, length(n_ders))
+   snp_id <- numeric()
+   for(id in 1:length(n_ders)){
+     snp_id[id] <- paste("snp", as.character(id), sep = "")
+   }
+   ances_alle <- rep("A", length(n_ders))
+   alter_alle <- rep("C", length(n_ders))
+   maf <- n_ders/n_chroms
+   nchrobs <- rep(n_chroms, length(n_ders))
+   freq_file <- cbind(chrom_num, snp_id, ances_alle, alter_alle, maf, nchrobs)
+   colnames(freq_file) <- c("CHR", "SNP", "A1", "A2", "MAF", "NCHROBS ")
+   fwrite(as.data.frame(freq_file), paste("asmc_decoding/decoding.frq", sep = ""))
 }
 
 relate_input <- function(derived_info, snp_pos, n_chromss){
