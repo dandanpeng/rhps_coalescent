@@ -12,15 +12,14 @@ for(i in 1:length(argweaver_trees_list)){
     }
 }
 
-trajs_neut_aw[time == 0,,] <- (n_ders/n_chroms)#in the present, just use sample allele frequency.
-#This is the same as the output of est_af_traj_neut() if no coalescent times get rounded to 0.
-vars_neut_bin_aw[time == 0,,] <- (n_ders/n_chroms)*(1 - (n_ders/n_chroms))/n_chroms
-
-
 for(i in 1:length(argweaver_trees_list)){
     avg_trajs_neut_aw[,i] <- rowMeans(trajs_neut_aw[,i,])
     avg_vars_neut_bin_aw[,i] <- rowMeans(vars_neut_bin_aw[,i,])
 }
+
+avg_trajs_neut_aw[time == 0,] <- (n_ders/n_chroms)#in the present, just use sample allele frequency.
+#This is the same as the output of est_af_traj_neut() if no coalescent times get rounded to 0.
+avg_vars_neut_bin_aw[time == 0,] <- (n_ders/n_chroms)*(1 - (n_ders/n_chroms))/n_chroms
 
 traj.phen.neut.aw <- 2 * avg_trajs_neut_aw %*%  eff_sizes 
 var.phen.neut.bin.aw <- 4 * avg_vars_neut_bin_aw %*% eff_sizes^2
@@ -35,7 +34,7 @@ avg_trajs_var_mom_smoothtime_aw <- matrix(nrow = length(time), ncol = length(arg
 for(i in 1:length(argweaver_trees_list)){	
     for(j in 1:length(argweaver_trees_list[[i]])){
     	trajs_mom_smoothtime_aw[,i,j] <- est_af_traj_mom.smoothtime(lins.list.argweaver[[i]][[j]], time)
-	trajs_var_mom_smoothtime_aw[,i,j] <- est_af_var_mom.smoothtime(lins.list.argweaver[[i]][[j]], time*2*N)
+	    trajs_var_mom_smoothtime_aw[,i,j] <- est_af_var_mom.smoothtime(lins.list.argweaver[[i]][[j]], time*2*N)
     }
 }
 
@@ -61,8 +60,9 @@ avg_trajs_est_wt_l1_aw <- matrix(nrow = length(time), ncol = length(argweaver_tr
 avg_trajs_var_wt_l1_aw <- matrix(nrow = length(time), ncol = length(argweaver_trees_list))
 
 for(i in 1:length(argweaver_trees_list)){
+    print(i)
     for(j in 1:length(argweaver_trees_list[[i]])){
-        wt.estvar.aw <- p_ests_wait(times.c.argweaver[[i]][[j]], time, ell.ref = 1, ell.alt = 1)
+        wt.estvar.aw <- p_ests_wait(i, anc_trees_argweaver[[i]][[j]], der_trees_argweaver[[i]][[j]], times.c.argweaver[[i]][[j]], time, ell.ref = 1, ell.alt = 1)
         trajs_est_wt_l1_aw[,i,j] <- wt.estvar.aw[,1]
         trajs_var_wt_l1_aw[,i,j] <- wt.estvar.aw[,2]
     }
@@ -75,6 +75,7 @@ for(i in 1:length(argweaver_trees_list)){
 
 traj.phen.wt_l1_aw <- 2 * avg_trajs_est_wt_l1_aw %*%  eff_sizes 
 var.phen.wt_l1_aw <- 4 * avg_trajs_var_wt_l1_aw %*%  eff_sizes^2 
+
 traj.phen.wt_l1_aw[time == 0] <- traj.phen.neut.aw[time == 0]
 var.phen.wt_l1_aw[time == 0] <- var.phen.neut.bin.aw[time == 0]
 

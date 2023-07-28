@@ -999,7 +999,7 @@ ts_var_quotient <- function(mu_n, var_n, mu_d, var_d, cov_nd){
 #This version assumes that the alt allele is derived and assigns alt
 #frequency to 0 before place proportion on the branch on which the mutation
 #must have occurred. 
-p_ests_wait <- function(ref.tree, alt.tree, ctime.list, time.eval, ell.ref = 5, ell.alt = 5, place = 0.5, ord2adj = FALSE){
+p_ests_wait <- function(locus, ref.tree, alt.tree, ctime.list, time.eval, ell.ref = 5, ell.alt = 5, place = 0.5, ord2adj = FALSE){
 	Ns_ref <- estN_waittimes(ref.tree, ctime.list[[2]], ell.ref)
 	Ns_alt <- estN_waittimes(alt.tree, ctime.list[[3]], ell.alt)
 	#tree join time is the time in full tree that doesn't appear in either subtree.
@@ -1014,10 +1014,10 @@ p_ests_wait <- function(ref.tree, alt.tree, ctime.list, time.eval, ell.ref = 5, 
 	p.ests <- numeric(length(time.eval))
 	var.ests <- p.ests
 	for(i in 1:length(time.eval)){
-	  if(Ns_ref[dim(Ns_ref)[1], 1] >= max(time) + 1){
+	  if(Ns_ref[dim(Ns_ref)[1], 1] >= max(time) + 1){#to decide if anc tree and der tree are flipped
 	    Ns.r.t <- getN_estNmat(Ns_ref, time.eval[i])
 		  Ns.a.t <- getN_estNmat(Ns_alt, time.eval[i])
-	  }else if(Ns_alt[dim(Ns_alt), 1] >= max(time) + 1){
+	  }else if(Ns_alt[dim(Ns_alt)[1], 1] >= max(time) + 1){
 	    Ns.r.t <- getN_estNmat(Ns_alt, time.eval[i])
 	    Ns.a.t <- getN_estNmat(Ns_ref, time.eval[i])
 	  }
@@ -1029,7 +1029,11 @@ p_ests_wait <- function(ref.tree, alt.tree, ctime.list, time.eval, ell.ref = 5, 
 		  Ns.r.t = Ns.r.t[c(1, length(Ns.a.t)/2)]
 		}
 		if(length(Ns.r.t) == 2 & length(Ns.a.t) == 2){
-		  p.ests[i] <- Ns.a.t[1]/(Ns.a.t[1] + Ns.r.t[1])
+		  if(Ns.a.t[1] == 0){
+		    p.ests[i] <- n_ders[locus]/10000
+		  }else{
+		    p.ests[i] <- Ns.a.t[1]/(Ns.a.t[1] + Ns.r.t[1])
+		  }
 		}else{
 		  stop("check if there is a polytomy")
 		}
@@ -2097,8 +2101,8 @@ asmc_freq <- function(n_ders){
    maf <- n_ders/n_chroms
    nchrobs <- rep(n_chroms, length(n_ders))
    freq_file <- cbind(chrom_num, snp_id, ances_alle, alter_alle, maf, nchrobs)
-   colnames(freq_file) <- c("CHR", "SNP", "A1", "A2", "MAF", "NCHROBS ")
-   fwrite(as.data.frame(freq_file), paste("asmc_decoding/decoding.frq", sep = ""))
+   colnames(freq_file) <- c("CHR", "SNP", "A1", "A2", "MAF", "NCHROBS")
+   fwrite(as.data.frame(freq_file), paste("asmc_decoding/decoding.frq", sep = ""), sep = '\t')
 }
 
 relate_input <- function(derived_info, snp_pos, n_chromss){
