@@ -40,6 +40,7 @@ relate_trees_list <- list()
 tsinfer_trees_list <- list()
 argweaver_samples_list <- list()
 argweaver_trees_list <- list()
+argneedle_trees_list <- list()
 ms_haplotypes_list <- list()
 
 for(i in new_argv$loci_start:new_argv$loci_end){
@@ -171,13 +172,13 @@ for(i in new_argv$loci_start:new_argv$loci_end){
         print("start to run tsinfer")
         #source("TSinfer.R")
         data =  cbind(snp_pos, derived_info)
-	#write.csv(data, paste(new_argv$temp, "/data.csv", sep = ''))
-	#sel_row = which(data[, 1] == sel_site)
+	      #write.csv(data, paste(new_argv$temp, "/data.csv", sep = ''))
+	      #sel_row = which(data[, 1] == sel_site)
 
         #Read in tree at selected site in tsinfer
-	tsinfer_sel_tree_newick <- tsfunc(data, sel_site - 1, N, u) # sel_site - 1 because the position is 0-based in tsinfer 
+	      tsinfer_sel_tree_newick <- tsfunc(data, sel_site - 1, N, u) # sel_site - 1 because the position is 0-based in tsinfer 
         tsinfer_trees_list[[i- new_argv$loci_start + 1]] <- read.tree(text = tsinfer_sel_tree_newick)
-	tsinfer_trees_list[[i - new_argv$loci_start + 1]]$tip.label <- as.character(as.numeric(gsub("n", "", tsinfer_trees_list[[i - new_argv$loci_start + 1]]$tip.label)) + 1)
+      	tsinfer_trees_list[[i - new_argv$loci_start + 1]]$tip.label <- as.character(as.numeric(gsub("n", "", tsinfer_trees_list[[i - new_argv$loci_start + 1]]$tip.label)) + 1)
     }
     
     ###############################  ARGWeaver #############################
@@ -200,7 +201,7 @@ for(i in new_argv$loci_start:new_argv$loci_end){
             sel_row <- aw.smc.trees[aw.smc.trees$V1 == "TREE" & aw.smc.trees$V2 <= sel_site & aw.smc.trees$V3 >= sel_site, ]
             sel_tree <- read.tree(text = sel_row$V4)
             real_label <- as.vector(unlist(aw.smc[1, 2:length(aw.smc)]))
-            sel_tree$tip.label <- lapply(sel_tree$tip.label, FUN = change_aw_label)
+            sel_tree$tip.label <- unlist(lapply(sel_tree$tip.label, FUN = change_aw_label))
             argweaver_samples_list[[sample + 1]] <- sel_tree
         }
         argweaver_trees_list[[i - new_argv$loci_start + 1]] <- argweaver_samples_list
@@ -210,10 +211,19 @@ for(i in new_argv$loci_start:new_argv$loci_end){
     
     if(!is.na(new_argv$argneedle)){
       print("start to run ARG-Needle")
-      
-      setwd(new_temp)
       arg_needle_input(derived_info, snp_pos, n_chromss)
-      system(paste("~/.local/bin/arg_needle --normalize 0 --hap_gz ", new_temp, "/an_data.haps --map ", new_temp, "/an_data.map --out an_data", sep = ""))
+      setwd(new_temp)
+      system("~/.local/bin/arg_needle --asmc_clust 1 --normalize_demography ~/.local/lib/python3.11/site-packages/arg_needle/resources/NE10K.demo 
+             --hap_gz an_data.haps 
+             --map an_data.map 
+             --asmc_decoding_file custom.decodingQuantities.gz 
+             --out an_data")
+      setwd("..")
+      an_newick(paste(new_temp, "/an_data.argn", sep = ""), paste(new_temp, "/argn_newick.txt", sep = ""))
+      argn_tree = read.tree(file = paste(new_temp, "/argn_newick.txt", sep = ''))
+      argn_tree$tip.label <- as.character(as.numeric(argn_tree$tip.label) + 1)
+      argneedle_trees_list[[i - new_argv$loci_start + 1]] <- argn_tree
+      
     }
     
     #save the haplotypes produced by ms (and fed to rent+) in a list entry.
@@ -258,6 +268,13 @@ if(!is.na(new_argv$argweaver)){
     }
 }
 
+##rescale branch length of argneedle trees
+if(!is.na(new_argv$argneedle)){
+  for(i in 1:(new_argv$loci_end - new_argv$loci_start + 1)){
+    argneedle_trees_list[[i]]$edge.length <- argneedle_trees_list[[i]]$edge.length/(2*N)
+  }
+}
+
 
 #Run through list and check for sites where 2+ variants had same coordinates as
 #selected site. At those places, check which tree(s) are monophyletic for derived tips.
@@ -299,6 +316,13 @@ if(!is.na(new_argv$argweaver)){
     aw_coal_time_ls(argweaver_trees_list, anc_trees_argweaver, der_trees_argweaver)
     aw_lins_ls(argweaver_trees_list, times.c.argweaver)
     
+}
+
+if(!is.na(new_argv$argneedle)){
+  check_samecor_sel_site("argneedle", argneedle_trees_list)
+  split_tree("argneedle", argneedle_trees_list)
+  coal_time_ls(argneedle_trees_list, anc_trees_argneedle, der_trees_argneedle, "argneedle")
+  lins_ls(argneedle_trees_list, "argneedle")
 }
 
 fn_str <- paste("loci", as.character(length(trajs)), "_sintens", as.character(round(sel.intens,3)), "_N", as.character(N), "_nchr", as.character(new_argv$n_chromss), "_ton", as.character(t), "_toff", as.character(t.off), "_herit", as.character(herit), "_", as.character(iter), "_locus", as.character(new_argv$loci_start), "_", as.character(new_argv$loci_end), sep = "")

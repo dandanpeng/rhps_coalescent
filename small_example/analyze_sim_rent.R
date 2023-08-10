@@ -27,7 +27,7 @@ var.phen.neut.bin.rent <- 4 * vars_neut_bin_rent %*% eff_sizes^2
 trajs_mom_smoothtime_rent <- matrix(nrow = length(time), ncol = length(rent_trees_list))
 trajs_var_mom_smoothtime_rent <- matrix(nrow = length(time), ncol = length(rent_trees_list))
 for(i in 1:length(rent_trees_list)){		
-	trajs_mom_smoothtime_rent[,i] <- est_af_traj_mom.smoothtime(lins.list.rent[[i]], time)
+	trajs_mom_smoothtime_rent[,i] <- est_af_traj_mom.smoothtime(i, lins.list.rent[[i]], time)
 	trajs_var_mom_smoothtime_rent[,i] <- est_af_var_mom.smoothtime(lins.list.rent[[i]], time*2*N)
 }
 traj.phen.mom_smoothtime_rent <- 2 * trajs_mom_smoothtime_rent %*%  eff_sizes 
@@ -36,14 +36,11 @@ traj.phen.mom_smoothtime_rent[time == 0] <- traj.phen.neut.rent[time == 0]
 var.phen.mom_smoothtime_rent[time == 0] <- var.phen.neut.bin.rent[time == 0]
 
 
-
-
-
 #waiting time-based estimates and variance---RENT
 trajs_est_wt_l1_rent <- matrix(nrow = length(time), ncol = length(rent_trees_list))
 trajs_var_wt_l1_rent <- matrix(nrow = length(time), ncol = length(rent_trees_list))
 for(i in 1:length(rent_trees_list)){
-	wt.estvar.rent <- p_ests_wait(times.c.rent[[i]], time, ell.ref = 1, ell.alt = 1)
+	wt.estvar.rent <- p_ests_wait(i, anc_trees_rent[[i]], der_trees_rent[[i]], times.c.rent[[i]], time, ell.ref = 1, ell.alt = 1)
 	trajs_est_wt_l1_rent[,i] <- wt.estvar.rent[,1]	
 	trajs_var_wt_l1_rent[,i] <- wt.estvar.rent[,2]	
 }

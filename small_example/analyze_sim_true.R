@@ -10,8 +10,8 @@ trajs_neut <- matrix(nrow = length(time), ncol = length(ms_trees_list))
 vars_neut_bin <- matrix(nrow = length(time), ncol = length(ms_trees_list))
 #vars_neut_post <- matrix(nrow = length(time), ncol = length(ms_trees_list))
 for(i in 1:length(ms_trees_list)){	
-	trajs_neut[,i] <- est_af_traj_neut(lins.list[[i]])
-	vars_neut_bin[,i] <- est_af_var_neut_bin(lins.list[[i]])
+	trajs_neut[,i] <- est_af_traj_neut(lins.list.ms[[i]])
+	vars_neut_bin[,i] <- est_af_var_neut_bin(lins.list.ms[[i]])
 #	vars_neut_post[,i] <- est_af_var_neut_post(lins.list[[i]])
 }
 trajs_neut[time == 0,] <- (n_ders/n_chroms) #in the present, just use sample allele frequency.
@@ -26,9 +26,9 @@ var.phen.neut.bin <- 4 * vars_neut_bin %*% eff_sizes^2
 #Method of moments from smoothed coalescent time estimates.
 trajs_mom_smoothtime <- matrix(nrow = length(time), ncol = length(ms_trees_list))
 trajs_var_mom_smoothtime <- matrix(nrow = length(time), ncol = length(ms_trees_list))
-for(i in 1:length(ms_trees_list)){		
-	trajs_mom_smoothtime[,i] <- est_af_traj_mom.smoothtime(lins.list[[i]], time)
-	trajs_var_mom_smoothtime[,i] <- est_af_var_mom.smoothtime(lins.list[[i]], time*2*N)
+for(i in 1:length(ms_trees_list)){	
+	trajs_mom_smoothtime[,i] <- est_af_traj_mom.smoothtime(i,lins.list.ms[[i]], time)
+	trajs_var_mom_smoothtime[,i] <- est_af_var_mom.smoothtime(lins.list.ms[[i]], time*2*N)
 }
 traj.phen.mom_smoothtime <- 2 * trajs_mom_smoothtime %*%  eff_sizes 
 var.phen.mom_smoothtime <- 4 * trajs_var_mom_smoothtime %*%  eff_sizes^2 
@@ -40,7 +40,7 @@ var.phen.mom_smoothtime[time == 0] <- var.phen.neut.bin[time == 0]
 trajs_est_wt_l1 <- matrix(nrow = length(time), ncol = length(ms_trees_list))
 trajs_var_wt_l1 <- matrix(nrow = length(time), ncol = length(ms_trees_list))
 for(i in 1:length(ms_trees_list)){
-	wt.estvar <- p_ests_wait(times.c[[i]], time, ell.ref = 1, ell.alt = 1)
+	wt.estvar <- p_ests_wait(i, anc_trees_ms[[i]], der_trees_ms[[i]], times.c.ms[[i]], time, ell.ref = 1, ell.alt = 1)
 	trajs_est_wt_l1[,i] <- wt.estvar[,1]	
 	trajs_var_wt_l1[,i] <- wt.estvar[,2]	
 }
@@ -82,20 +82,20 @@ err.neut.std.bin <- err.neut / sqrt(var.phen.neut.bin)
 err.smoothmom.std <- err.smoothmom / sqrt(var.phen.mom_smoothtime)
 err.wt_l1.std <- err.wt_l1 / sqrt(var.phen.wt_l1)
 
-err.mat <- cbind(err.neut, err.smoothmom, err.wt_l1, err.flat, err.straight)
+err.mat <- cbind(err.neut, err.smoothmom, err.wt_l1)
 err.mat.std <- cbind(err.neut.std.bin, err.smoothmom.std, err.wt_l1.std)
 
-err.array[,,iter] <- err.mat
-err.std.array[,,iter] <- err.mat.std
-mat.true.phentrajs[,iter] <- true.per.time
+err.array[,,iteration] <- err.mat
+err.std.array[,,iteration] <- err.mat.std
+mat.true.phentrajs[,iteration] <- true.per.time
 
 #Tests
-qxtest_mat[iter,1:3] <- Qx_test(trajs_neut[time %in% ((0:10)/100),], eff_sizes, perms = 0)
-qxtest_mat[iter,4] <- Qx_test(trajs_neut[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
-qxtest_mat[iter,5:7] <- Qx_test(trajs_mom_smoothtime[time %in% ((0:10)/100),], eff_sizes, perms = 0)
-qxtest_mat[iter,8] <- Qx_test(trajs_mom_smoothtime[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
-qxtest_mat[iter,9:11] <- Qx_test(trajs_est_wt_l1[time %in% ((0:10)/100),], eff_sizes, perms = 0)
-qxtest_mat[iter,12] <- Qx_test(trajs_est_wt_l1[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
+qxtest_mat[iteration,1:3] <- Qx_test(trajs_neut[time %in% ((0:10)/100),], eff_sizes, perms = 0)
+qxtest_mat[iteration,4] <- Qx_test(trajs_neut[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
+qxtest_mat[iteration,5:7] <- Qx_test(trajs_mom_smoothtime[time %in% ((0:10)/100),], eff_sizes, perms = 0)
+qxtest_mat[iteration,8] <- Qx_test(trajs_mom_smoothtime[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
+qxtest_mat[iteration,9:11] <- Qx_test(trajs_est_wt_l1[time %in% ((0:10)/100),], eff_sizes, perms = 0)
+qxtest_mat[iteration,12] <- Qx_test(trajs_est_wt_l1[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
 
 print("true tree T_X statistic, number of timepoints, and permutation p")
 print(Qx_test(trajs_neut[time %in% ((0:10)/100),], eff_sizes, perms = 10000))
