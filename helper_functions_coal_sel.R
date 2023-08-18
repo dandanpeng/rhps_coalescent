@@ -2028,7 +2028,6 @@ sample_rent_input <- function(rent_in_fn, rent_sample_in, sample_seq_num, i){
 }
 
 
-
 ## read the haplotypes from the text file into a matrix
 hap_to_mat <- function(rent_input_file){
   rent_in <- as.matrix(fread(rent_input_file, skip = 1, header = FALSE))

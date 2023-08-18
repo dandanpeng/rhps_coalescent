@@ -1,4 +1,4 @@
-load("nosel_2000_100/nosel_2000_100_iter1_100_analyzed_trees.RData")
+load("recent_20_100/wo_rescale/recent_20_100_iter1_100_anayzed_trees.RData")
 
 weak0204.truetraj <- mat.true.phentrajs
 
@@ -30,7 +30,7 @@ e4 <- new.env(parent = baseenv())
 load("nosel_check_aw/nosel_20_100_iter16_30_analyzed_trees.RData", envir = e4)
 
 
-weak0204.aw.err.array <- abind(e3$err.array.aw, e4$err.array.aw)
+weak0204.aw.err.array <- err.array.aw
 weak0204.aw.std.array <- abind(e3$err.std.array.aw, e4$err.std.array.aw)
 
 weak0204.avg.err.mat <- apply(weak0204.err.array, 1:2, mean, na.rm = TRUE) #average err of all iterations
@@ -108,7 +108,9 @@ if(sel.intenses > 0){
 legend("topright", bty = "n", lty = 1, cex = 0.7, col = pal[c(4,3,5,2,1)], legend = c("tsinfer", "RELATE", "ARGWeaver", "RENT+", "True"))
 title("Waiting-time")
 
-############     MSE   ################
+
+###############################     MSE   ##################################
+
 pdf("proportion-of-lineage_mse.pdf", width = wid, height = hei)
 plot(rev(time) - max(time), weak0204.avg.sq.err.mat[,1], type = "l", xlim = xl, ylim = yl.mse,
      bty = "n", xlab = "Time (approximate kya)", xaxt = "n",
@@ -131,7 +133,6 @@ title("Proportion-of-lineage")
 #mtext("B", side = 3, line = .5, at = min(xl))
 dev.off()
 
-#weak0204.aw.avg.sq.err.mat <- apply(weak0204.aw.err.array^2 * 2.5, 1:2, mean, na.rm = TRUE)
 pdf("lineages_remaining_mse.pdf", width = wid, height = hei)
 plot(rev(time) - max(time), weak0204.avg.sq.err.mat[,2], type = "l", xlim = xl, ylim = yl.mse,
      bty = "n", xlab = "Time", xaxt = "n",

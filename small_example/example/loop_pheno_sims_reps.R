@@ -11,7 +11,6 @@ p <- add_argument(p, "--n_chromss", help = "number of chromosomes", type = "nume
 p <- add_argument(p, "--n_loci", help = "number of loci", type = "numeric")
 p <- add_argument(p, "--out", help = "out directory", type = "character")
 p <- add_argument(p, "--temp", help = "temp directory", type = "character")
-#p <- add_argument(p, "--sample_loci_num", help = "subsample number from mssel output", type = "numeric")
 p <- add_argument(p, "--sample_seq_num", help = "subsample sequence numebr from mssel output", type = "numeric")
 p <- add_argument(p, "--loci_start", help = "the number of start loci in parrallele running", type = "numeric")
 p <- add_argument(p, "--loci_end", help = "the number of end loci in parrallele running", type = "numeric")
@@ -20,8 +19,6 @@ p <- add_argument(p, "--relate", help = "run relate")
 p <- add_argument(p, "--tsinfer", help = "run tsinfer")
 p <- add_argument(p, "--argweaver", help = "run argweaver")
 p <- add_argument(p, "--argneedle", help = "run argneedle")
-#p <- add_argument(p, "--phen_start", help = "phenotype number start", type = "numeric")
-#p <- add_argument(p, "--phen_end", help = "phenotype number end", type = "numeric")
 p <- add_argument(p, "--iter_start", help = "phenotype number start", type = "numeric")
 p <- add_argument(p, "--iter_end", help = "phenotype number end", type = "numeric")
 new_argv <- parse_args(p)
@@ -138,6 +135,9 @@ for(iter in new_argv$iter_start:new_argv$iter_end){
     aw_sample <- 50
     source(helper_fn)
     asmc_freq(n_ders)
+    create_decoding_quantities("asmc_decoding/NE10K.demo", 
+                               "asmc_decoding/decoding.disc",
+                               "asmc_decoding/decoding.frq")
     source("../sample_and_run.R")
     #source("../sample_run_wo_rescale.R")
 }
