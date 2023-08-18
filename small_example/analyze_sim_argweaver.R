@@ -33,7 +33,7 @@ avg_trajs_var_mom_smoothtime_aw <- matrix(nrow = length(time), ncol = length(arg
 
 for(i in 1:length(argweaver_trees_list)){	
     for(j in 1:length(argweaver_trees_list[[i]])){
-    	trajs_mom_smoothtime_aw[,i,j] <- est_af_traj_mom.smoothtime(lins.list.argweaver[[i]][[j]], time)
+    	trajs_mom_smoothtime_aw[,i,j] <- est_af_traj_mom.smoothtime(i, lins.list.argweaver[[i]][[j]], time)
 	    trajs_var_mom_smoothtime_aw[,i,j] <- est_af_var_mom.smoothtime(lins.list.argweaver[[i]][[j]], time*2*N)
     }
 }
