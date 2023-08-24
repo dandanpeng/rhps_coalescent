@@ -315,7 +315,6 @@ if(!is.na(new_argv$argweaver)){
     aw_split_tree("argweaver", argweaver_trees_list)
     aw_coal_time_ls(argweaver_trees_list, anc_trees_argweaver, der_trees_argweaver)
     aw_lins_ls(argweaver_trees_list, times.c.argweaver)
-    
 }
 
 if(!is.na(new_argv$argneedle)){

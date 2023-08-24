@@ -1932,12 +1932,12 @@ coal_time_ls <- function(tree_ls, anc_trees, der_trees, tool_name, sure.alt.is.d
 
 
 aw_coal_time_ls <- function(argweaver_trees_list, anc_trees_argweaver, der_trees_argweaver){
-  times.c.argweaver <- list()
+  times.c.argweaver <<- list()
   for(i in 1:length(argweaver_trees_list)){
-    times.c.argweaver[[i]] <- list()
+    times.c.argweaver[[i]] <<- list()
     for(sample in 1:(aw_sample+1)){
-      times.c.argweaver[[i]][[sample]] <- list()
-      times.c.argweaver[[i]][[sample]] <- trees_to_times(argweaver_trees_list[[i]][[sample]], anc_trees_argweaver[[i]][[sample]],
+      times.c.argweaver[[i]][[sample]] <<- list()
+      times.c.argweaver[[i]][[sample]] <<- trees_to_times(argweaver_trees_list[[i]][[sample]], anc_trees_argweaver[[i]][[sample]],
                                                           der_trees_argweaver[[i]][[sample]], time, sure.alt.is.derived = FALSE, units_in = 2)
     }
   }
