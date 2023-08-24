@@ -118,9 +118,9 @@ print("start for loop")
 for(iter in new_argv$iter_start:new_argv$iter_end){
     print(strsplit(new_argv$out, '_')[[1]][1])
     if(strsplit(new_argv$out, '_')[[1]][1] == "nosel"){
-        ms_fn <- paste("nosel_true_sim/loci100_sintens0_N10000_nchr", as.character(new_argv$n_chromss), "_ton0.02_toff0.02_herit1_", as.character(iter), ".RData", sep = "")
+        ms_fn <- paste("nosel_true_sim/loci100_sintens0_N10000_nchr2000_ton0.02_toff0.02_herit1_", as.character(iter), ".RData", sep = "")
     }else if(strsplit(new_argv$out, '_')[[1]][1] == "recent"){
-        ms_fn <- paste("recent_true_sim/loci100_sintens0.005_N10000_nchr", as.character(new_argv$n_chromss),"_ton0.04_toff0.02_herit1_", as.character(iter), ".RData", sep = "")
+        ms_fn <- paste("recent_true_sim/loci100_sintens0.005_N10000_nchr2000_ton0.04_toff0.02_herit1_", as.character(iter), ".RData", sep = "")
     }
     load(ms_fn)
     n.loci <- new_argv$n_loci
