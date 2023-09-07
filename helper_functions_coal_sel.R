@@ -1845,7 +1845,7 @@ split_tree <- function(tool_name, tree_ls){
   ct_anc <- list()
   ct_der <- list()
   
-  for(i in 1:(new_argv$loci_end - new_argv$loci_start + 1)){
+  for(i in 1:length(tree_ls)){
     if(is.na(sample_seq_num) | tool_name == "ms"){
       anc_tips <- which(tree_ls[[i]]$tip.label %in% as.character(1:(n_chroms - n_ders[i + new_argv$loci_start - 1])))
       der_tips <- which(tree_ls[[i]]$tip.label %in% as.character((n_chroms - n_ders[i + new_argv$loci_start - 1] + 1):n_chroms))
