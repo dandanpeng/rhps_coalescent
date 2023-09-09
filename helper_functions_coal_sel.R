@@ -470,7 +470,7 @@ add_mutation <- function(tree.all, tree.ref, tree.alt, allt, reft, altt, tj, tim
           reft <- c(reft, (max(reft) * (1-place) + tj * place))
           altt <- c(altt, max(times) + 1)
         }
-      }else if(!is.monophyletic(tree.all, tree.alt$tip.label) & !is.monophyletic(tree.all, tree.ref$tip.label)){
+      }else{
         tj <- max(altt) + 0.001
         altt <- c(altt, tj)
         reft <- c(reft, max(times) + 1)
