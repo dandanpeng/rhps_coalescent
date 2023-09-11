@@ -82,18 +82,18 @@ err.wt_l1.std.rent <- err.wt_l1.rent / sqrt(var.phen.wt_l1_rent)
 err.mat.rent <- cbind(err.neut.rent, err.smoothmom.rent, err.wt_l1.rent)
 err.mat.std.rent <- cbind(err.neut.std.bin.rent, err.smoothmom.std.rent, err.wt_l1.std.rent)
 
-err.array.rent[,,iter] <- err.mat.rent
-err.std.array.rent[,,iter] <- err.mat.std.rent
-mat.true.phentrajs[,iter] <- true.per.time
+err.array.rent[,,iteration] <- err.mat.rent
+err.std.array.rent[,,iteration] <- err.mat.std.rent
+mat.true.phentrajs[,iteration] <- true.per.time
 
 
 #Tests
-qxtest_mat_rent[iter,1:3] <- Qx_test(trajs_neut_rent[time %in% ((0:10)/100),], eff_sizes, perms = 0)
-qxtest_mat_rent[iter,4] <- Qx_test(trajs_neut_rent[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
-qxtest_mat_rent[iter,5:7] <- Qx_test(trajs_mom_smoothtime_rent[time %in% ((0:10)/100),], eff_sizes, perms = 0)
-qxtest_mat_rent[iter,8] <- Qx_test(trajs_mom_smoothtime_rent[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
-qxtest_mat_rent[iter,9:11] <- Qx_test(trajs_est_wt_l1_rent[time %in% ((0:10)/100),], eff_sizes, perms = 0)
-qxtest_mat_rent[iter,12] <- Qx_test(trajs_est_wt_l1_rent[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
+qxtest_mat_rent[iteration,1:3] <- Qx_test(trajs_neut_rent[time %in% ((0:10)/100),], eff_sizes, perms = 0)
+qxtest_mat_rent[iteration,4] <- Qx_test(trajs_neut_rent[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
+qxtest_mat_rent[iteration,5:7] <- Qx_test(trajs_mom_smoothtime_rent[time %in% ((0:10)/100),], eff_sizes, perms = 0)
+qxtest_mat_rent[iteration,8] <- Qx_test(trajs_mom_smoothtime_rent[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
+qxtest_mat_rent[iteration,9:11] <- Qx_test(trajs_est_wt_l1_rent[time %in% ((0:10)/100),], eff_sizes, perms = 0)
+qxtest_mat_rent[iteration,12] <- Qx_test(trajs_est_wt_l1_rent[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
 
 print("rent tree T_X statistic, number of timepoints, and permutation p")
 print(Qx_test(trajs_neut_rent[time %in% ((0:10)/100),], eff_sizes, perms = 10000))

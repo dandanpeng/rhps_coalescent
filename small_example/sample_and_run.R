@@ -242,8 +242,6 @@ if(!is.na(new_argv$relate)){
     for(i in 1:(new_argv$loci_end - new_argv$loci_start + 1)){
       tmrca.relate[i] <- max(branching.times(relate_trees_list[[i]]))
     }
-    
-    
     for(i in 1:(new_argv$loci_end - new_argv$loci_start + 1)){
       relate_trees_list[[i]]$edge.length <- relate_trees_list[[i]]$edge.length/(28 * 2 * N)
     }
