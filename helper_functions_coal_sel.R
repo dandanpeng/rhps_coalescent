@@ -807,11 +807,11 @@ est_af_traj_mom.smoothtime <- function(locus, lins, times = seq(0.005, 8.005, by
     }else{
       traj <- est_af_traj_neut(lins.list.ms[[i]])
     }
-  }else if(max(lins[,2]) == 1){
+  }else if(max(lins[,2]) == 1 & min(lins[,2] != 1)){
     derive_pres <- max(which(lins[,2] == 1))
     traj[1:derive_pres] <- rep(n_ders[locus]/n_chroms, derive_pres)
     traj[(derive_pres + 1): length(traj)] <- rep(0, length(traj) - derive_pres)
-  }else if(max(lins[,1]) == 1){
+  }else if(max(lins[,1]) == 1 | min(lins[,2] ==1)){
     traj <- est_af_traj_neut(lins.list.ms[[i]])
   }
   traj
