@@ -27,7 +27,7 @@ var.phen.neut.bin.tsinfer <- 4 * vars_neut_bin_tsinfer %*% eff_sizes^2
 trajs_mom_smoothtime_tsinfer <- matrix(nrow = length(time), ncol = length(tsinfer_trees_list))
 trajs_var_mom_smoothtime_tsinfer <- matrix(nrow = length(time), ncol = length(tsinfer_trees_list))
 for(i in 1:length(tsinfer_trees_list)){		
-	trajs_mom_smoothtime_tsinfer[,i] <- est_af_traj_mom.smoothtime(lins.list.tsinfer[[i]], time)
+	trajs_mom_smoothtime_tsinfer[,i] <- est_af_traj_mom.smoothtime(i, lins.list.tsinfer[[i]], time)
 	trajs_var_mom_smoothtime_tsinfer[,i] <- est_af_var_mom.smoothtime(lins.list.tsinfer[[i]], time*2*N)
 }
 traj.phen.mom_smoothtime_tsinfer <- 2 * trajs_mom_smoothtime_tsinfer %*%  eff_sizes 
@@ -37,14 +37,11 @@ var.phen.mom_smoothtime_tsinfer[time == 0] <- var.phen.neut.bin.tsinfer[time == 
 
 
 
-
-
 #waiting time-based estimates and variance---tsinfer
 trajs_est_wt_l1_tsinfer <- matrix(nrow = length(time), ncol = length(tsinfer_trees_list))
 trajs_var_wt_l1_tsinfer <- matrix(nrow = length(time), ncol = length(tsinfer_trees_list))
 for(i in 1:length(tsinfer_trees_list)){
-  print(i)
-	wt.estvar.tsinfer <- p_ests_wait(anc_trees_tsinfer[[i]], der_trees_tsinfer[[i]], times.c.tsinfer[[i]], time, ell.ref = 1, ell.alt = 1)
+	wt.estvar.tsinfer <- p_ests_wait(i, anc_trees_tsinfer[[i]], der_trees_tsinfer[[i]], times.c.tsinfer[[i]], time, ell.ref = 1, ell.alt = 1)
 	trajs_est_wt_l1_tsinfer[,i] <- wt.estvar.tsinfer[,1]	
 	trajs_var_wt_l1_tsinfer[,i] <- wt.estvar.tsinfer[,2]	
 }

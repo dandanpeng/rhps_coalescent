@@ -417,6 +417,7 @@ coal.times <- function(tree){
 #input is an ape-style phylo object.
 pair.coal.times <- function(tree){
   pair_time_mat <- cophenetic.phylo(tree)
+  pair_time_mat <- pair_time_mat[as.character(sort(as.numeric(rownames(pair_time_mat)))), as.character(sort(as.numeric(colnames(pair_time_mat))))]
   pair_time_vec <- pair_time_mat[lower.tri(pair_time_mat, diag = FALSE)]
   return(pair_time_vec/2)
 }
@@ -785,6 +786,7 @@ mom.smoothtime <- function(lins, time){
 	}	
 	coal.times <- sapply(lins.g0, mom.scaledtime, n0 = n0)
 	coal.smooth <- smooth.steps(time.g0, coal.times)
+	
 	rise <- coal.smooth[2:length(coal.smooth)] - coal.smooth[1:(length(coal.smooth) - 1)]
 	run <- time.g0[2:length(time.g0)] - time.g0[1:(length(time.g0) - 1)]
 	c(run/rise, rep(0, sum(lins==0))) #population size is proportional to reciprocal of slope relating generations to coal time.
@@ -795,7 +797,8 @@ mom.smoothtime <- function(lins, time){
 #at which the lineages are counted. Times should be in units proportional to generations.
 #Returns an estimated trajectory of alternative allele frequency at times.
 est_af_traj_mom.smoothtime <- function(locus, lins, times = seq(0.005, 8.005, by = 0.01)){
-  traj <- rep(-1, length(lins[,1]))
+  #traj <- rep(-1, length(lins[,1]))
+  traj <- rep(-1, length(times))
   if((max(lins[,2]) > 1) & (max(lins[,1]) > 1)){
     ref.lins.g0 <- lins[,1][lins[,1] > 0]
     alt.lins.g0 <- lins[,2][lins[,2] > 0]
@@ -805,14 +808,10 @@ est_af_traj_mom.smoothtime <- function(locus, lins, times = seq(0.005, 8.005, by
 	    Nalt <- mom.smoothtime(lins[,2], times)
 	    traj[traj == -1] <- Nalt / (Nref + Nalt)
     }else{
-      traj <- est_af_traj_neut(lins.list.ms[[i]])
+      traj <- est_af_traj_neut(lins)
     }
-  }else if(max(lins[,2]) == 1 & min(lins[,2] != 1)){
-    derive_pres <- max(which(lins[,2] == 1))
-    traj[1:derive_pres] <- rep(n_ders[locus]/n_chroms, derive_pres)
-    traj[(derive_pres + 1): length(traj)] <- rep(0, length(traj) - derive_pres)
-  }else if(max(lins[,1]) == 1 | min(lins[,2] ==1)){
-    traj <- est_af_traj_neut(lins.list.ms[[i]])
+  }else{
+    traj <- est_af_traj_neut(lins)
   }
   traj
 }
@@ -838,7 +837,7 @@ est_af_var_mom.smoothtime <- function(lins, times = 10000*seq(0.005, 8.005, by =
 	    vars.traj <- est_af_var_neut_bin(lins)
 	  }
 	}else if(max(lins[,2]) == 1){
-	  var.traj <- rep(0, length(lins[,1]))
+	  vars.traj <- rep(0, length(lins[,1]))
 	}else if(max(lins[,1]) == 1){
 	  vars.traj <- est_af_var_neut_bin(lins)
 	}
@@ -874,8 +873,24 @@ est_af_var_mom.smoothtime_coaltimes <- function(lins, times = seq(0.005, 8.005, 
 #and column 3 variance of the N estimate. If there are less than 
 #ell coalescence left after last estimate, just use the ones that
 #are left.
-estN_waittimes <- function(tree, ctimevec, ell){
+estN_waittimes <- function(tree, lins, ctimevec, ell){
   ctimevec <- sort(ctimevec)
+  
+  ##### edited ####
+  # if a tree has many zero-length tip branches, we assign a new length to those branches
+  if(0 %in% ctimevec & max(ctimevec) > 0){
+    present_coal = sum(ctimevec == 0)
+    probab <- numeric()
+    probab[1] <- 1/choose(length(ctimevec) + 1, 2)
+    for(p in 1:present_coal){
+      probab[p + 1] <- 1/choose(length(ctimevec) + 1 - p, 2)
+    }
+    sum_probab <- sum(probab)
+    new_coal <- cumsum(probab * (min(ctimevec[ctimevec > 0])/sum_probab))
+    ctimevec[ctimevec == 0] <- new_coal[-length(new_coal)]
+  }
+  ################
+  
   if(length(ctimevec) < ell){inds <- length(ctimevec)}
   if(length(ctimevec) == ell){inds <- ell}	
   if(length(ctimevec) > ell){
@@ -896,51 +911,77 @@ estN_waittimes <- function(tree, ctimevec, ell){
   l <- inds[1]
   N.ests[1] <- wt[1]/(2*(1/(n[1]-l) - 1/n[1]))
   N.vars[1] <- (N.ests[1]^2)*var.mult(n[1]-l, l)
-  if(length(ctimes) > 1){
-    wt <- round(c(wt, diff(ctimes)), 10)
-  }	
+  #if(length(ctimes) > 1){
+  #  wt <- round(c(wt, diff(ctimes)), 10)
+  #}	
   
-  # find the polytomy/polytomies
-  if(0 %in% wt){
-    multi_tree <- di2multi(tree, tol = 10e-10)
-    num_children <- as.data.frame(table(multi_tree$edge[,1]))
-    num_children$Var1 <- as.numeric(as.character(num_children$Var1))
-    
-    polytomy <- num_children[num_children$Freq > 2,]
-    for(node in polytomy$Var1){
-      # find the position of polytomy time in the coal time vector
-      same_coal_index <- which(abs(ctimes - coal.time(multi_tree, node)) < 10e-10)
-      interval <- wt[same_coal_index[1]]
-      # tryCatch({
-      #   # Code inside the loop that generates a warning
-      #   warning(paste("Warning in iteration", node))
-      # }, warning = function(w) {
-      #   # Print a custom message with the iteration number
-      #   cat("Warning in iteration", node, "\n")
-      # })
-      
-      n_lin_avail <- length(ctimes) - (same_coal_index[1]-1) 
-      #n_lin_polytomy <- polytomy[polytomy$Var1 == node, 'Freq']
-      n_coal = length(same_coal_index) 
-      prob <- numeric()
-      prob[1] = 1/choose(n_lin_avail, 2)
-      
-      if(n_coal > 2){
-        for(p in 1:(n_coal-2)){
-          prob[p+1] <- 1/choose(n_lin_avail - p, 2)
+  uniq_ctimes = unique(ctimes)
+  for(i in 1:length(uniq_ctimes)){
+    time_repeat <- length(which(ctimes == uniq_ctimes[[i]]))
+    if(time_repeat > 1){
+       if(i == 1){
+         interval <- uniq_ctimes[[i]]
+       }else{
+         interval <- uniq_ctimes[[i]] - uniq_ctimes[[i - 1]]
+       }
+       
+       lins_index <- which.max(uniq_ctimes[[i]] >= time)
+       n_lin_avail <- lins[lins_index]
+       n_coal <- time_repeat
+       prob <- numeric()
+       prob[1] = 1/choose(n_lin_avail, 2)
+       
+       if(n_coal > 2){
+         for(p in 1:(n_coal-2)){
+              prob[p+1] <- 1/choose(n_lin_avail - p, 2)
+          }
+          sum_p <- sum(prob)
+          new_wt <- prob * (interval/sum_p)
+        }else if(n_coal == 2){
+          new_wt <- interval/2
+        }else{
+          new_wt <- 0
         }
-        sum_p <- sum(prob)
-        new_wt <- prob * (interval/sum_p)
-      }else if(n_coal == 2){
-        new_wt <- interval/2
-      }else{
-        new_wt <- 0
-      }
-
-      ctimes[same_coal_index[-length(same_coal_index)]] <- ctimes[same_coal_index[-length(same_coal_index)]] - new_wt
-      ctimes <- sort(ctimes)
+       repeat_start <- min(which(ctimes == uniq_ctimes[[i]]))
+       repeat_end <- max(which(ctimes == uniq_ctimes[[i]])) - 1
+       ctimes[repeat_start:repeat_end] <- ctimes[repeat_start:repeat_end] - new_wt
+       ctimes <- sort(ctimes)
     }
   }
+
+  # find the polytomy/polytomies
+  # if(0 %in% wt){
+  #   multi_tree <- di2multi(tree, tol = 10e-10)
+  #   num_children <- as.data.frame(table(multi_tree$edge[,1]))
+  #   num_children$Var1 <- as.numeric(as.character(num_children$Var1))
+  #   
+  #   polytomy <- num_children[num_children$Freq > 2,]
+  #   for(node in polytomy$Var1){
+  #     # find the position of polytomy time in the coal time vector
+  #     same_coal_index <- which(abs(ctimes - coal.time(multi_tree, node)) < 10e-10)
+  #     interval <- wt[same_coal_index[1]]
+  #     
+  #     n_lin_avail <- length(ctimes) - (same_coal_index[1]-1) 
+  #     n_coal = length(same_coal_index) 
+  #     prob <- numeric()
+  #     prob[1] = 1/choose(n_lin_avail, 2)
+  #     
+  #     if(n_coal > 2){
+  #       for(p in 1:(n_coal-2)){
+  #         prob[p+1] <- 1/choose(n_lin_avail - p, 2)
+  #       }
+  #       sum_p <- sum(prob)
+  #       new_wt <- prob * (interval/sum_p)
+  #     }else if(n_coal == 2){
+  #       new_wt <- interval/2
+  #     }else{
+  #       new_wt <- 0
+  #     }
+  # 
+  #     ctimes[same_coal_index[-length(same_coal_index)]] <- ctimes[same_coal_index[-length(same_coal_index)]] - new_wt
+  #     ctimes <- sort(ctimes)
+  #   }
+  # }
   
   if(length(ctimes) > 1){
     for(i in 2:length(ctimes)){
@@ -953,7 +994,7 @@ estN_waittimes <- function(tree, ctimevec, ell){
       }else{
         N.ests[i] <- wt/(2*(1/(n-l) - 1/n))
         N.vars[i] <- (N.ests[i]^2)*var.mult(n-l, l)
-       }
+      }
     }
     #N.ests <-  c(N.ests, N.ests[length(N.ests)])
     #N.vars <- c(N.vars, N.vars[length(N.vars)])
@@ -1000,24 +1041,26 @@ ts_var_quotient <- function(mu_n, var_n, mu_d, var_d, cov_nd){
 #This version assumes that the alt allele is derived and assigns alt
 #frequency to 0 before place proportion on the branch on which the mutation
 #must have occurred. 
-p_ests_wait <- function(locus, ref.tree, alt.tree, ctime.list, time.eval, ell.ref = 5, ell.alt = 5, place = 0.5, ord2adj = FALSE){
-	if(ctime.list[[2]][[length(ctime.list[[2]])]] >= max(time) + 1){#to decide if anc tree and der tree are flipped
-	  Ns_ref <- estN_waittimes(ref.tree, ctime.list[[2]], ell.ref)
-	  Ns_alt <- estN_waittimes(alt.tree, ctime.list[[3]], ell.alt)
-	}
-  if(ctime.list[[3]][[length(ctime.list[[3]])]] >= max(time) + 1){
-    Ns_alt <- estN_waittimes(ref.tree, ctime.list[[2]], ell.ref)
-    Ns_ref <- estN_waittimes(alt.tree, ctime.list[[3]], ell.alt)
-  }
-	#tree join time is the time in full tree that doesn't appear in either subtree.
-	tj <- tree_join_time(ctime.list[[1]], ctime.list[[2]][-length(ctime.list[[2]])], ctime.list[[3]][-length(ctime.list[[3]])], NULL)
-	lca <- Ns_alt[nrow(Ns_alt), 1]	
-	if(tj >= lca & dim(Ns_alt)[1] > 1){
-		Ns_alt <- rbind(Ns_alt, c(lca + (tj - lca)*place, 0, 0))
-	}
-  if(tj < lca & dim(Ns_alt)[1] > 1){
-		Ns_alt <- rbind(Ns_alt, c(lca + 0.001, 0, 0))
-	}
+p_ests_wait <- function(locus, ref.tree, alt.tree, lins.ls, ctime.list, time.eval, ell.ref = 5, ell.alt = 5, place = 0.5, ord2adj = FALSE){
+    if(length(ctime.list[[2]]) > 1 & length(ctime.list[[3]]) >= 1){
+      Ns_ref <- estN_waittimes(ref.tree,lins.ls[,1], ctime.list[[2]], ell.ref)
+      Ns_alt <- estN_waittimes(alt.tree, lins.ls[,2], ctime.list[[3]], ell.alt)
+    }else if(length(ctime.list[[2]]) == 1 & length(ctime.list[[3]]) > 1){
+      Ns_alt <- estN_waittimes(alt.tree, lins.ls[,2],ctime.list[[3]], ell.alt)
+      pres_af <- n_ders[locus]/n_chroms
+      Ns_ref <- cbind(ctime.list[[2]], n_chromss*(1-pres_af), 0)
+    }
+    
+    #tree join time is the time in full tree that doesn't appear in either subtree.
+    tj <- tree_join_time(ctime.list[[1]], ctime.list[[2]][-length(ctime.list[[2]])], ctime.list[[3]][-length(ctime.list[[3]])], NULL)
+    lca <- Ns_alt[nrow(Ns_alt), 1]	
+    if(tj >= lca & dim(Ns_alt)[1] > 1){
+      Ns_alt <- rbind(Ns_alt, c(lca + (tj - lca)*place, 0, 0))
+    }
+    if(tj < lca & dim(Ns_alt)[1] > 1){
+      Ns_alt <- rbind(Ns_alt, c(lca + 0.001, 0, 0))
+    }
+
 	p.ests <- numeric(length(time.eval))
 	var.ests <- p.ests
 	for(i in 1:length(time.eval)){
@@ -1047,6 +1090,34 @@ p_ests_wait <- function(locus, ref.tree, alt.tree, ctime.list, time.eval, ell.re
 	}
 	cbind(p.ests, var.ests)
 }
+
+
+
+############ add in Oct 2023 to test shared-N waiting-time estimator #######
+
+skyline.traj <- function(tree, ctime.vec, time.eval, ell){
+  skyline.N.mat <- estN_waittimes(tree, ctime.vec, ell)
+  N.traj <- numeric(length(time.eval))
+  for(i in 1:length(time.eval)){
+    N.traj[i] <- getN_estNmat(skyline.N.mat, time.eval[i], est.only = TRUE)
+  }
+  N.traj
+}
+
+get.skyline.mat <- function(tree_ls, ctime.list, time.eval, subtree, ell = 1){
+  N.mat <- matrix(nrow = length(time.eval), ncol = length(ctime.list))
+  for(i in 1:length(ctime.list)){
+    N.mat[,i] <- skyline.traj(tree_ls[[i]], ctime.list[[i]][[subtree]], time.eval, ell)
+  }
+  N.mat
+}
+
+
+
+#############################################################################
+
+
+
 
 #Function to compute harmonic mean.
 harm.mean <- function(x,...){
@@ -1368,9 +1439,6 @@ p_ests_wait_AIC_l <- function(ctime.list, time.eval, place = 0.5, weight.K.ref =
 
 
 
-
-
-
 #Function that returns a list of three vectors of coalescence times,
 #one for the whole tree (element [[1]] of the output), 
 #one for the "ref" subtree (element [[2]] of the output), 
@@ -1384,15 +1452,28 @@ trees_to_times <- function(tree.all, tree.ref, tree.alt, times, sure.alt.is.deri
 	allt <- coal.times(tree.all)
 	reft <- coal.times(tree.ref)
 	altt <- coal.times(tree.alt)
+	
 	if(units_in != units_out){
 		allt <- allt*units_in/units_out
 		reft <- reft*units_in/units_out
 		altt <- altt*units_in/units_out
 	}
+	
 	tj <- tree_join_time(allt, reft, altt, mut.time)
 	add_mutation(tree.all, tree.ref, tree.alt, allt, reft, altt, tj, times, sure.alt.is.derived, place)
 }
 
+an_trees_to_times <- function(locus, tree.all, tree.ref, times, sure.alt.is.derived = FALSE, place = 0.5, mut.time = NULL, units_in = 2, units_out = 2){
+  allt <- coal.times(tree.all)
+  reft <- coal.times(tree.ref)
+  
+  altt.info <- sep_an_der_tree(tree.all, locus)
+  altt <- altt.info[[1]]
+  tj <- altt.info[[2]]
+  add_mutation(tree.all, tree.ref, tree.alt, allt, reft, altt, tj, times, sure.alt.is.derived, place)
+}
+  
+  
 
 #Takes a list of three vectors of coalescence times,
 #one for the whole tree (element [[1]] of the output), 
@@ -1405,17 +1486,29 @@ trees_to_times <- function(tree.all, tree.ref, tree.alt, times, sure.alt.is.deri
 #(column 1) and alt allele (column 2) at each time in times.
 #(each row of output is for the corresponding entry in times.)
 times_to_lins <- function(tree.times, times = seq(0.005, 8.005, by = 0.01)){
-	reft <- tree.times[[2]]
-	altt <- tree.times[[3]]
-	count.lins <- function(x, vec){
-		if(x <= 0){
-			return(length(vec))		
-		}
-		sum(vec > x)
-	}
-	lins_ref <- sapply(times, FUN = count.lins, vec = reft )
-	lins_alt <- sapply(times, FUN = count.lins, vec = altt )
-	cbind(lins_ref, lins_alt)
+  count.lins <- function(x, vec){
+    if(x <= 0){
+      return(length(vec))		
+    }
+    sum(vec > x)
+  }
+  
+  #if(class(tree.times[[1]][[1]]) == "list"){
+    #sub_lins_alt <- matrix(nrow = length(times), ncol = length(tree.times))
+    #lins_ref <- sapply(times, FUN = count.lins, vec = tree.times[[1]][[2]])
+    #for(i in 1:length(tree.times)){
+      #altt <- tree.times[[i]][[3]]
+      #reft <- tree.times[[i]][[2]]
+      #sub_lins_alt[,i] <- sapply(times, FUN = count.lins, vec = altt)
+    #}
+    #lins_alt <- rowSums(sub_lins_alt)
+  #}else{
+    altt <- tree.times[[3]]
+    reft <- tree.times[[2]]
+    lins_ref <- sapply(times, FUN = count.lins, vec = reft )
+    lins_alt <- sapply(times, FUN = count.lins, vec = altt )
+    cbind(lins_ref, lins_alt)
+  #}
 }
 
 
@@ -1425,6 +1518,25 @@ est_af_traj_neut <- function(lins){
 	lins[,2]/rowSums(lins)
 }
 
+
+  # if(!is.monophyletic(argneedle_trees_list[[i]], der_trees_argneedle[[i]]$tip.label)){
+  #   tips_to_check <- der_trees_argneedle[[i]]$tip.label
+  #   for(j in 1:length(tips_to_check)){
+  #      tip_j <- tips_to_check[j]
+  #      for(k in 1:length(tips_to_check)){
+  #        if(j != k){
+  #           tip_k <- tips_to_check[k]
+  #           mrca <- getMRCA(argneedle_trees_list[[i]], c(tip_j, tip_k))
+  #           descendants <- getDescendants(argneedle_trees_list[[i]], mrca)
+  #           if(mean(argneedle_trees_list[[1]]$tip.label[descendants[descendants < 2000]] %in% tips_to_check) == 1){
+  #             pass
+  #           }
+  #        }
+  #      }
+  #   }
+  # 
+  #   
+  # }
 
 #Takes a matrix of lineage numbers per time and returns
 #the binomial sampling variance of the neutral MLE of the allele frequency.
@@ -1665,7 +1777,7 @@ compute_Qx_traj <- function(traj, fmat, Va, f.inverted = FALSE){
 #measurement and subtracted from everything else. (Va is also computed
 #on the basis of the most recent observation). trajmat must have
 #at least two rows.
-#If time is estimated, it can be estimated either from the start (timeest = "seq") 
+#If time is estimated, it can be estimated either from the start (timeest = "fromstart") 
 #or in sequence ("seq", the default),
 #meaning that each interval is estimated independently of the others.
 Qx_test <- function(trajmat, eff_sizes, timevec = NULL, perms = 1000, timeest = "seq"){
@@ -1914,15 +2026,90 @@ aw_split_tree <- function(tool_name, argweaver_trees_list){
   }
 }
 
+an_anc_tree <- function(tree_ls){
+  anc_trees <- list()
+  ct_all <- list()
+  ct_anc <- list()
+  
+  for(i in 1:(new_argv$loci_end - new_argv$loci_start + 1)){
+    der_tips <- which(tree_ls[[i]]$tip.label %in% as.character((n_chroms - n_ders[i + new_argv$loci_start - 1] + 1):n_chroms))
+    anc_trees[[i]] <- drop.tip(tree_ls[[i]], der_tips)
+    
+    ct_all[[i]] <- coal.times(tree_ls[[i]])
+    ct_anc[[i]] <- coal.times(anc_trees[[i]])
+  }
+  
+  assign(paste("anc_trees_argneedle", sep = ""), anc_trees, envir = globalenv())
+  assign(paste("ct_argneedle_all", sep = ""), ct_all, envir = globalenv())
+  assign(paste("ct_argneedle_anc", sep = ""), ct_anc, envir = globalenv())
+}
+
+sep_an_der_tree <- function(tree, locus){
+  der_subtree_ls <- list()
+  der_subtree_ct <- c()
+  sub_tj <- numeric()
+  clade_num <- 0
+  der_tips <- as.character((n_chroms - n_ders[locus + new_argv$loci_start - 1] + 1):n_chroms)
+  mrca <- getMRCA(tree, der_tips) #get the mrca of all derived tips
+  descendant = getDescendants(tree, mrca) # find the children of that mrca
+  internal_descendant = descendant[descendant > 2000] # exclude the tip nodes
+
+  for(j in 1:length(internal_descendant)){
+    if(is.na(internal_descendant[j])){
+      break
+    }else{
+      sub_descendant = getDescendants(tree, internal_descendant[j]) # get the descendat of the first-layer internal descendant
+      tip_descendant = sub_descendant[sub_descendant <= 2000]
+      if(mean(tree$tip.label[tip_descendant] %in% der_tips) != 1){
+        j = j + 1
+      }else{
+        der_subtree <- keep.tip(tree, tree$tip.label[tip_descendant])
+        der_subtree_ct <- c(der_subtree_ct, coal.times(der_subtree))
+        
+        clade_root <- internal_descendant[j]
+        clade_num <- clade_num + 1
+        join_node <- tree$edge[tree$edge[,2] == clade_root,][1]
+        sub_tj[clade_num] <- coal.time(tree, join_node)
+        #der_subtree_ls[[clade_num]] <- keep.tip(tree, tree$tip.label[tip_descendant])
+        internal_descendant = setdiff(internal_descendant, c(sub_descendant))
+      }
+    }
+  }
+  #return(max(sub_tj))
+  return(list(sort(der_subtree_ct), max(sub_tj)))
+}
+
+an_der_tree_coal <- function(tree_ls){
+  der_trees <- list()
+  ct_der <- list()
+  der_subtree_coal <- c()
+  for(i in 1:(new_argv$loci_end - new_argv$loci_start + 1)){
+    #der_trees[[i]] <- sep_an_der_tree(tree_ls[[i]], i)
+    anc_tips <- which(tree_ls[[i]]$tip.label %in% as.character(1:(n_chroms - n_ders[i + new_argv$loci_start - 1])))
+    der_trees[[i]] <- drop.tip(tree_ls[[i]], anc_tips)
+    
+    edge_index <- which(der_trees[[i]]$edge[,1] == der_tree_root) #the edges that connect der_tree_root and its two children nodes
+    if(der_tree_root > new_root_height){
+      der_trees[[i]]$edge.length[edge_index] <- coal.time(der_trees[[i]], der_tree_root) - new_root_height
+    }
+  }
+  assign(paste("der_trees_argneedle", sep = ""), der_trees, envir = globalenv())
+  #assign(paste("ct_argneedle_der", sep = ""), ct_der, envir = globalenv())
+}
+
 # store coalescent times of the whole tree, anc tree and der tree into one list
 coal_time_ls <- function(tree_ls, anc_trees, der_trees, tool_name, sure.alt.is.derived = TRUE){
   times.c <- list()
-  if(tool_name == "ms" | tool_name == "rent"){
+  if(tool_name == "ms"){
     for(i in 1:length(tree_ls)){
       times.c[[i]] <- trees_to_times(tree_ls[[i]], anc_trees[[i]], der_trees[[i]], time, sure.alt.is.derived, units_in = 4)
     }
-  }
-  else{
+  }else if(tool_name == "argneedle"){
+    for(i in 1:length(tree_ls)){
+      print(i)
+      times.c[[i]] <- an_trees_to_times(i, tree_ls[[i]], anc_trees[[i]], time, sure.alt.is.derived, units_in = 2)
+    }
+  }else{
     for(i in 1:length(tree_ls)){
       times.c[[i]] <- trees_to_times(tree_ls[[i]], anc_trees[[i]], der_trees[[i]], time, sure.alt.is.derived, units_in = 2)
     }
@@ -2091,19 +2278,33 @@ argneedle_map_input <- function(snp_pos){
 
 # ASMC decoding file
 # frequencies
-asmc_freq <- function(n_ders){
-   chrom_num <- rep(1, length(n_ders))
-   snp_id <- numeric()
-   for(id in 1:length(n_ders)){
-     snp_id[id] <- paste("snp", as.character(id), sep = "")
-   }
-   ances_alle <- rep("A", length(n_ders))
-   alter_alle <- rep("C", length(n_ders))
-   maf <- n_ders/n_chroms
-   nchrobs <- rep(n_chroms, length(n_ders))
-   freq_file <- cbind(chrom_num, snp_id, ances_alle, alter_alle, maf, nchrobs)
-   colnames(freq_file) <- c("CHR", "SNP", "A1", "A2", "MAF", "NCHROBS")
-   fwrite(as.data.frame(freq_file), paste("asmc_decoding/decoding.frq", sep = ""), sep = '\t')
+# asmc_freq <- function(n_ders){
+# chrom_num <- rep(1, length(n_ders))
+# snp_id <- numeric()
+# for(id in 1:length(n_ders)){
+# snp_id[id] <- paste("snp", as.character(id), sep = "")
+# }
+# ances_alle <- rep("A", length(n_ders))
+# alter_alle <- rep("C", length(n_ders))
+# maf <- n_ders/n_chroms
+# nchrobs <- rep(n_chroms, length(n_ders))
+# freq_file <- cbind(chrom_num, snp_id, ances_alle, alter_alle, maf, nchrobs)
+# colnames(freq_file) <- c("CHR", "SNP", "A1", "A2", "MAF", "NCHROBS")
+# fwrite(as.data.frame(freq_file), paste("asmc_decoding/decoding.frq", sep = ""), sep = '\t')
+# }
+asmc_freq <- function(derived_info, snp_pos){
+  chrom_num <- rep(1, length(n_ders))
+  snp_id <- numeric()
+  for(id in 1:length(snp_pos)){
+    snp_id[id] <- paste("snp", as.character(id), sep = "")
+  }
+  ances_alle <- rep("A", length(snp_pos))
+  alter_alle <- rep("C", length(snp_pos))
+  maf <- rowSums(derived_info)/2000
+  nchrobs <- rep(n_chroms, length(snp_pos))
+  freq_file <- cbind(chrom_num, snp_id, ances_alle, alter_alle, maf, nchrobs)
+  colnames(freq_file) <- c("CHR", "SNP", "A1", "A2", "MAF", "NCHROBS")
+  fwrite(as.data.frame(freq_file), paste("asmc_decoding/decoding.frq", sep = ""), sep = '\t')
 }
 
 relate_input <- function(derived_info, snp_pos, n_chromss){

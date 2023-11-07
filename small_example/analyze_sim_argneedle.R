@@ -21,7 +21,7 @@ var.phen.neut.bin.argneedle <- 4 * vars_neut_bin_argneedle %*% eff_sizes^2
 trajs_mom_smoothtime_argneedle <- matrix(nrow = length(time), ncol = length(argneedle_trees_list))
 trajs_var_mom_smoothtime_argneedle <- matrix(nrow = length(time), ncol = length(argneedle_trees_list))
 for(i in 1:length(argneedle_trees_list)){		
-  trajs_mom_smoothtime_argneedle[,i] <- est_af_traj_mom.smoothtime(lins.list.argneedle[[i]], time)
+  trajs_mom_smoothtime_argneedle[,i] <- est_af_traj_mom.smoothtime(i, lins.list.argneedle[[i]], time)
   trajs_var_mom_smoothtime_argneedle[,i] <- est_af_var_mom.smoothtime(lins.list.argneedle[[i]], time*2*N)
 }
 traj.phen.mom_smoothtime_argneedle <- 2 * trajs_mom_smoothtime_argneedle %*%  eff_sizes 
@@ -33,7 +33,7 @@ var.phen.mom_smoothtime_argneedle[time == 0] <- var.phen.neut.bin.argneedle[time
 trajs_est_wt_l1_argneedle <- matrix(nrow = length(time), ncol = length(argneedle_trees_list))
 trajs_var_wt_l1_argneedle <- matrix(nrow = length(time), ncol = length(argneedle_trees_list))
 for(i in 1:length(argneedle_trees_list)){
-  wt.estvar.argneedle <- p_ests_wait(anc_trees_argneedle[[i]], der_trees_argneedle[[i]], times.c.argneedle[[i]], time, ell.ref = 1, ell.alt = 1)
+  wt.estvar.argneedle <- p_ests_wait(i, anc_trees_argneedle[[i]], der_trees_argneedle[[i]], lins.list.argneedle[[i]], times.c.argneedle[[i]], time, ell.ref = 1, ell.alt = 1)
   trajs_est_wt_l1_argneedle[,i] <- wt.estvar.argneedle[,1]	
   trajs_var_wt_l1_argneedle[,i] <- wt.estvar.argneedle[,2]	
 }
