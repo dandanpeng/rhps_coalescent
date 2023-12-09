@@ -418,10 +418,10 @@ coal.times <- function(tree){
 pair.coal.times <- function(tree){
   pair_time_mat <- cophenetic.phylo(tree)
   if(is.na(as.numeric(rownames(pair_time_mat)[1]))){
-    pair_time_mat <- pair_time_mat[sort(rownames(pair_time_mat)), sort(colnames(pair_time_mat))]
-  }else{
-    pair_time_mat <- pair_time_mat[as.character(sort(as.numeric(rownames(pair_time_mat)))), as.character(sort(as.numeric(colnames(pair_time_mat))))]
+    rownames(pair_time_mat) <- gsub("n", "", rownames(pair_time_mat))
+    colnames(pair_time_mat) <- gsub("n", "", colnames(pair_time_mat))
   }
+  pair_time_mat <- pair_time_mat[as.character(sort(as.numeric(rownames(pair_time_mat)))), as.character(sort(as.numeric(colnames(pair_time_mat))))]
   pair_time_vec <- pair_time_mat[lower.tri(pair_time_mat, diag = FALSE)]
   return(pair_time_vec/2)
 }
