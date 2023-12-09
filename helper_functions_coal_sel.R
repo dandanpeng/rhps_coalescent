@@ -417,7 +417,11 @@ coal.times <- function(tree){
 #input is an ape-style phylo object.
 pair.coal.times <- function(tree){
   pair_time_mat <- cophenetic.phylo(tree)
-  pair_time_mat <- pair_time_mat[as.character(sort(as.numeric(rownames(pair_time_mat)))), as.character(sort(as.numeric(colnames(pair_time_mat))))]
+  if(is.na(as.numeric(rownames(pair_time_mat)[1]))){
+    pair_time_mat <- pair_time_mat[sort(rownames(pair_time_mat)), sort(colnames(pair_time_mat))]
+  }else{
+    pair_time_mat <- pair_time_mat[as.character(sort(as.numeric(rownames(pair_time_mat)))), as.character(sort(as.numeric(colnames(pair_time_mat))))]
+  }
   pair_time_vec <- pair_time_mat[lower.tri(pair_time_mat, diag = FALSE)]
   return(pair_time_vec/2)
 }
@@ -1463,7 +1467,7 @@ trees_to_times <- function(tree.all, tree.ref, tree.alt, times, sure.alt.is.deri
 	add_mutation(tree.all, tree.ref, tree.alt, allt, reft, altt, tj, times, sure.alt.is.derived, place)
 }
 
-an_trees_to_times <- function(locus, tree.all, tree.ref, times, sure.alt.is.derived = FALSE, place = 0.5, mut.time = NULL, units_in = 2, units_out = 2){
+an_trees_to_times <- function(locus, tree.all, tree.ref, tree.alt, times, sure.alt.is.derived = FALSE, place = 0.5, mut.time = NULL, units_in = 2, units_out = 2){
   allt <- coal.times(tree.all)
   reft <- coal.times(tree.ref)
   
@@ -2106,8 +2110,7 @@ coal_time_ls <- function(tree_ls, anc_trees, der_trees, tool_name, sure.alt.is.d
     }
   }else if(tool_name == "argneedle"){
     for(i in 1:length(tree_ls)){
-      print(i)
-      times.c[[i]] <- an_trees_to_times(i, tree_ls[[i]], anc_trees[[i]], time, sure.alt.is.derived, units_in = 2)
+      times.c[[i]] <- an_trees_to_times(i, tree_ls[[i]], anc_trees[[i]], der_trees[[i]], time, sure.alt.is.derived, units_in = 2)
     }
   }else{
     for(i in 1:length(tree_ls)){
