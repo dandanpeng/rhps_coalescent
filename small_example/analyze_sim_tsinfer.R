@@ -41,7 +41,7 @@ var.phen.mom_smoothtime_tsinfer[time == 0] <- var.phen.neut.bin.tsinfer[time == 
 trajs_est_wt_l1_tsinfer <- matrix(nrow = length(time), ncol = length(tsinfer_trees_list))
 trajs_var_wt_l1_tsinfer <- matrix(nrow = length(time), ncol = length(tsinfer_trees_list))
 for(i in 1:length(tsinfer_trees_list)){
-	wt.estvar.tsinfer <- p_ests_wait(i, anc_trees_tsinfer[[i]], der_trees_tsinfer[[i]], times.c.tsinfer[[i]], time, ell.ref = 1, ell.alt = 1)
+	wt.estvar.tsinfer <- p_ests_wait(i, anc_trees_tsinfer[[i]], der_trees_tsinfer[[i]], lins.ls.tsinfer[[i]], times.c.tsinfer[[i]], time, ell.ref = 1, ell.alt = 1)
 	trajs_est_wt_l1_tsinfer[,i] <- wt.estvar.tsinfer[,1]	
 	trajs_var_wt_l1_tsinfer[,i] <- wt.estvar.tsinfer[,2]	
 }
