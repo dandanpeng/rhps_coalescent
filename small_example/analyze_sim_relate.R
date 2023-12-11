@@ -17,6 +17,8 @@ traj.phen.neut.relate <- 2 * trajs_neut_relate %*%  eff_sizes
 var.phen.neut.bin.relate <- 4 * vars_neut_bin_relate %*% eff_sizes^2
 #var.phen.neut.post.relate <- 4 * vars_neut_post_relate %*% eff_sizes^2
 
+
+
 #Method of moments from smoothed coalescent time estimates---relate.
 trajs_mom_smoothtime_relate <- matrix(nrow = length(time), ncol = length(relate_trees_list))
 trajs_var_mom_smoothtime_relate <- matrix(nrow = length(time), ncol = length(relate_trees_list))
@@ -28,6 +30,8 @@ traj.phen.mom_smoothtime_relate <- 2 * trajs_mom_smoothtime_relate %*%  eff_size
 var.phen.mom_smoothtime_relate <- 4 * trajs_var_mom_smoothtime_relate %*%  eff_sizes^2 
 traj.phen.mom_smoothtime_relate[time == 0] <- traj.phen.neut.relate[time == 0]
 var.phen.mom_smoothtime_relate[time == 0] <- var.phen.neut.bin.relate[time == 0]
+
+
 
 #waiting time-based estimates and variance---relate
 trajs_est_wt_l1_relate <- matrix(nrow = length(time), ncol = length(relate_trees_list))

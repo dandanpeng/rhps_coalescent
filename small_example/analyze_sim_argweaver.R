@@ -62,7 +62,7 @@ avg_trajs_var_wt_l1_aw <- matrix(nrow = length(time), ncol = length(argweaver_tr
 for(i in 1:length(argweaver_trees_list)){
     print(i)
     for(j in 1:length(argweaver_trees_list[[i]])){
-        wt.estvar.aw <- p_ests_wait(i, anc_trees_argweaver[[i]][[j]], der_trees_argweaver[[i]][[j]], times.c.argweaver[[i]][[j]], time, ell.ref = 1, ell.alt = 1)
+        wt.estvar.aw <- p_ests_wait(i, anc_trees_argweaver[[i]][[j]], der_trees_argweaver[[i]][[j]], lins.list.argweaver[[i]][[j]], times.c.argweaver[[i]][[j]], time, ell.ref = 1, ell.alt = 1)
         trajs_est_wt_l1_aw[,i,j] <- wt.estvar.aw[,1]
         trajs_var_wt_l1_aw[,i,j] <- wt.estvar.aw[,2]
     }
@@ -112,9 +112,9 @@ err.std.array.aw[,,iteration] <- err.mat.std.aw
 mat.true.phentrajs[,iteration] <- true.per.time
 
 
-#qxtest_mat[iteration,1:3] <- Qx_test(trajs_neut_aw[time %in% ((0:10)/100),], eff_sizes, perms = 0)
-#qxtest_mat[iteration,4] <- Qx_test(trajs_neut_aw[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
-#qxtest_mat[iteration,5:7] <- Qx_test(trajs_mom_smoothtime_aw[time %in% ((0:10)/100),], eff_sizes, perms = 0)
-#qxtest_mat[iteration,8] <- Qx_test(trajs_mom_smoothtime_aw[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
-#qxtest_mat[iteration,9:11] <- Qx_test(trajs_est_wt_l1_aw[time %in% ((0:10)/100),], eff_sizes, perms = 0)
-#qxtest_mat[iteration,12] <- Qx_test(trajs_est_wt_l1_aw[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
+qxtest_mat[iteration,1:3] <- Qx_test(avg_trajs_neut_aw[time %in% ((0:10)/100),], eff_sizes, perms = 0)
+qxtest_mat[iteration,4] <- Qx_test(avg_trajs_neut_aw[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
+qxtest_mat[iteration,5:7] <- Qx_test(avg_trajs_mom_smoothtime_aw[time %in% ((0:10)/100),], eff_sizes, perms = 0)
+qxtest_mat[iteration,8] <- Qx_test(avg_trajs_mom_smoothtime_aw[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
+qxtest_mat[iteration,9:11] <- Qx_test(avg_trajs_est_wt_l1_aw[time %in% ((0:10)/100),], eff_sizes, perms = 0)
+qxtest_mat[iteration,12] <- Qx_test(avg_trajs_est_wt_l1_aw[time %in% ((0:10)/100),], eff_sizes, perms = 10000)[3]
