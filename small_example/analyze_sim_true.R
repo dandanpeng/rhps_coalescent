@@ -3,8 +3,6 @@
 
 #once a trait dataset is loaded, analyze all the true trees.
 
-
-
 #neutral
 trajs_neut <- matrix(nrow = length(time), ncol = length(ms_trees_list))
 vars_neut_bin <- matrix(nrow = length(time), ncol = length(ms_trees_list))
@@ -50,18 +48,6 @@ traj.phen.wt_l1[time == 0] <- traj.phen.neut[time == 0]
 var.phen.wt_l1[time == 0] <- var.phen.neut.bin[time == 0]
 
 
-# shared-N waiting-time estimates
-skyline.mat.all <- get.skyline.mat(ms_trees_list, times.c.ms, time, subtree = 1)
-skyline.mat.anc <- get.skyline.mat(anc_trees_ms, times.c.ms, time, subtree = 2)
-skyline.mat.der <- get.skyline.mat(der_trees_ms, times.c.ms, time, subtree = 3)
-
-total.N.traj <- rowMeans(skyline.mat.all)
-total.N.traj <- apply(skyline.mat.all, 1, harm.mean)
-
-sharedN.wt.trajs <- abs((skyline.mat.der/total.N.traj + 1 - skyline.mat.anc/total.N.traj)/2)
-traj.phen.sharedN.wt <- 2 * sharedN.wt.trajs %*% eff_sizes
-
-
 #flat line backward estimator
 traj.flatline <- rep(traj.phen.neut[time == 0], length(traj.phen.neut))
 
@@ -87,7 +73,6 @@ for(j in 1:length(time)){
 err.neut <- traj.phen.neut - true.per.time
 err.smoothmom <- traj.phen.mom_smoothtime - true.per.time
 err.wt_l1 <- traj.phen.wt_l1 - true.per.time
-#err.shareN.wt <- traj.phen.sharedN.wt - true.per.time
 err.flat <- traj.flatline - true.per.time
 err.straight <- traj.straightline - true.per.time
 
