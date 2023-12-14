@@ -2107,7 +2107,7 @@ coal_time_ls <- function(tree_ls, anc_trees, der_trees, tool_name, sure.alt.is.d
   if(tool_name == "ms"){
     for(i in 1:length(tree_ls)){
       times.c[[i]] <- trees_to_times(tree_ls[[i]], anc_trees[[i]], der_trees[[i]], time, sure.alt.is.derived, units_in = 4)
-    }
+   }
   }else if(tool_name == "argneedle"){
     for(i in 1:length(tree_ls)){
       times.c[[i]] <- an_trees_to_times(i, tree_ls[[i]], anc_trees[[i]], der_trees[[i]], time, sure.alt.is.derived, units_in = 2)
